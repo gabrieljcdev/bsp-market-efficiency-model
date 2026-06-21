@@ -1,0 +1,9 @@
+# Core Betfair tooling
+betfairlightweight>=2.23
+betfair_data>=0.3.4
+betfairdatabase>=1.3
+flumine>=2.13
+# Data / modelling
+pandas
+numpy
+# rpscrape has its own requirements in vendor/rpscrape/requirements.txt
