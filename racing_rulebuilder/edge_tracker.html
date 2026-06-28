@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edge Tracker</title>
+<style>
+  /* shares the rule-builder (index.html) design system */
+  :root{
+    --bg:#0f1419; --panel:#171d26; --panel2:#1d2530; --line:#2a3340;
+    --ink:#e6edf3; --muted:#8b97a7; --accent:#4ea1ff; --accent2:#2f6fb0;
+    --good:#3fb950; --warn:#d29922; --bad:#f85149; --derived:#a371f7; --chip:#222c38;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{padding:18px 24px;border-bottom:1px solid var(--line);background:var(--panel);
+    display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  header h1{margin:0;font-size:18px}
+  header .sub{color:var(--muted);font-size:12px;margin-top:4px}
+  header .sub code{background:var(--chip);padding:1px 6px;border-radius:4px}
+  .io{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .wrap{padding:18px 24px;max-width:1180px}
+  .btn{padding:8px 14px;border-radius:8px;border:1px solid var(--accent2);
+    background:var(--accent2);color:#fff;cursor:pointer;font-size:13px;font-weight:600}
+  .btn:hover{background:var(--accent)}
+  .btn.ghost{background:transparent;border-color:var(--line);color:var(--muted)}
+  .btn.ghost:hover{border-color:var(--accent);color:var(--ink)}
+  .btn.sm{padding:5px 10px;font-size:12px}
+  /* tabs */
+  .tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--line)}
+  .tab{padding:9px 16px;cursor:pointer;color:var(--muted);font-weight:600;font-size:13px;
+    border:1px solid transparent;border-bottom:none;border-radius:8px 8px 0 0}
+  .tab.active{color:var(--ink);background:var(--panel);border-color:var(--line);
+    border-bottom:1px solid var(--panel);margin-bottom:-1px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+  .seg-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:0 0 10px}
+  .hint{color:var(--muted);font-size:11.5px;line-height:1.5}
+  label.fld{display:block;font-size:11px;color:var(--muted);margin:0 0 3px}
+  input[type=text],input[type=number],input[type=date],textarea,select{
+    padding:8px 10px;border-radius:7px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--ink);font-size:13px;width:100%}
+  textarea{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;min-height:96px;resize:vertical}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
+  .grid{display:grid;gap:10px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .err{color:var(--bad);font-size:12px;min-height:16px;margin-top:6px}
+  /* tables */
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;
+    border-bottom:1px solid var(--line);padding:6px 8px;white-space:nowrap}
+  td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  td.pos{color:var(--good)} td.neg{color:var(--bad)}
+  tr.empty td{color:var(--muted);font-style:italic;text-align:center;padding:18px}
+  .x{cursor:pointer;color:var(--muted);border:none;background:none;font-size:15px;font-weight:700}
+  .x:hover{color:var(--bad)}
+  td input,td select{padding:4px 6px;font-size:12px;width:auto;min-width:64px}
+  .detail{background:#101822;border:1px solid var(--line);border-radius:8px;padding:10px;margin:6px 0}
+  .detail table{font-size:12px}
+  /* summary stat strip */
+  .stats{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:6px}
+  .stat .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+  .stat .l{font-size:11px;color:var(--muted)}
+  .stat .v.pos{color:var(--good)} .stat .v.neg{color:var(--bad)}
+  .stat .v.accent{color:var(--accent)}
+  /* verdict badges -- shared system convention with index.html / run_strategy.py */
+  .verdict{font-weight:800;font-size:11px;letter-spacing:.5px;padding:3px 10px;border-radius:20px;white-space:nowrap}
+  .v-ruledin  {background:#0f3a1e;color:#3fb950;border:1px solid #1f5130}
+  .v-priced   {background:#3a1f22;color:#f85149;border:1px solid #5a2a2e}
+  .v-toholdout{background:#3a3016;color:#d29922;border:1px solid #5a4a1e}
+  .v-thin     {background:#222c38;color:#8b97a7;border:1px solid var(--line)}
+  .v-none     {background:#1a2029;color:#6b7686;border:1px dashed var(--line)}
+  .side-back{color:var(--accent)} .side-lay{color:var(--derived)}
+  .hide{display:none}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Edge Tracker</h1>
+    <div class="sub">companion to the rule builder (<code>index.html</code>) — same verdict system ·
+      back struck=<code>wap</code>, close=<code>bsp</code>, 5% commission</div>
+  </div>
+  <div class="io">
+    <button class="btn ghost sm" onclick="exportState()">⭳ Export JSON</button>
+    <label class="btn ghost sm" style="margin:0">⭱ Import JSON
+      <input type="file" accept="application/json" onchange="importState(this)" class="hide"></label>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hint" style="margin-bottom:12px">
+    Persistence is <b>file-based</b>: state lives in memory and in the JSON you <b>Export</b> —
+    there is no browser storage, so this works self-hosted from <code>file://</code>. Export to save,
+    Import to reload. (No <code>localStorage</code>/<code>window.storage</code>.)
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tab-bt"  onclick="showTab('bt')">Backtest log</div>
+    <div class="tab"        id="tab-fwd" onclick="showTab('fwd')">Forward bets</div>
+  </div>
+
+  <!-- ===================== TAB 1: BACKTEST LOG ===================== -->
+  <section id="pane-bt">
+    <div class="card">
+      <p class="seg-title">Log a backtest</p>
+      <div class="hint" style="margin-bottom:10px">
+        In <code>index.html</code>, build a strategy (ideally with a discovery/holdout split for a verdict)
+        and <b>Copy JSON</b>. Paste it below and <b>Run via bridge</b> (needs
+        <code>python run_strategy.py --serve</code>), or paste a <code>results.json</code> from the CLI and
+        <b>Log result</b>.
+      </div>
+      <div class="grid">
+        <div class="row">
+          <div style="flex:2;min-width:200px">
+            <label class="fld">Strategy name</label>
+            <input type="text" id="bt-name" placeholder="e.g. Good going AND or≥80">
+          </div>
+          <div style="flex:1;min-width:200px">
+            <label class="fld">Bridge endpoint</label>
+            <input type="text" id="bt-endpoint" value="http://127.0.0.1:8765/run">
+          </div>
+        </div>
+        <div>
+          <label class="fld">Strategy JSON (to run) — or results.json (to log directly)</label>
+          <textarea id="bt-json" placeholder='{ "source_csv": "...", "split": { "mode":"date", "date_cutoff":"2024-01-01" }, "selection_rules": { ... } }'></textarea>
+        </div>
+        <div class="row">
+          <button class="btn" onclick="runViaBridge()">Run via bridge &amp; log</button>
+          <button class="btn ghost" onclick="logResultJSON()">Log result JSON</button>
+          <span class="err" id="bt-err"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="seg-title">Backtest log <span class="hint" id="bt-count"></span></p>
+      <table id="bt-table"></table>
+    </div>
+  </section>
+
+  <!-- ===================== TAB 2: FORWARD BETS ===================== -->
+  <section id="pane-fwd" class="hide">
+    <div class="card">
+      <p class="seg-title">Forward-bet performance (CLV-first)</p>
+      <div class="stats" id="fwd-stats"></div>
+      <div class="hint">
+        CLV is the headline: back CLV = <code>struck/bsp − 1</code>, lay CLV = <code>bsp/struck − 1</code>
+        (correct sign — a positive lay CLV means the price drifted out after you laid).
+        P&amp;L is net 5% commission on winnings, per <code>clv.py</code>.
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="seg-title">Log a forward bet</p>
+      <div class="grid">
+        <div class="row">
+          <div style="width:130px"><label class="fld">Date</label><input type="date" id="f-date"></div>
+          <div style="flex:1;min-width:140px"><label class="fld">Strategy (optional)</label>
+            <input type="text" id="f-strat" placeholder="link to a logged backtest"></div>
+          <div style="flex:1;min-width:160px"><label class="fld">Selection (horse — race)</label>
+            <input type="text" id="f-sel" placeholder="e.g. Trongate — 14:30 Ascot"></div>
+        </div>
+        <div class="row">
+          <div style="width:110px"><label class="fld">Side</label>
+            <select id="f-side"><option value="back">back</option><option value="lay">lay</option></select></div>
+          <div style="width:120px"><label class="fld">Struck price</label>
+            <input type="number" id="f-struck" step="0.01" min="1.01" placeholder="6.0"></div>
+          <div style="width:120px"><label class="fld">BSP (close)</label>
+            <input type="number" id="f-bsp" step="0.01" min="1.01" placeholder="blank = pending"></div>
+          <div style="width:120px"><label class="fld">Result</label>
+            <select id="f-result">
+              <option value="pending">pending</option>
+              <option value="won">horse won</option>
+              <option value="lost">horse lost</option>
+              <option value="void">void</option></select></div>
+          <div style="width:90px"><label class="fld">Stake (u)</label>
+            <input type="number" id="f-stake" step="0.1" min="0" value="1"></div>
+          <div><button class="btn" onclick="addForwardBet()">Add bet</button></div>
+        </div>
+        <span class="err" id="f-err"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="seg-title">Forward bets <span class="hint" id="fwd-count"></span></p>
+      <div class="hint" style="margin-bottom:8px">BSP and Result are editable inline — fill them in once the race settles.</div>
+      <table id="fwd-table"></table>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ===========================================================================
+   Edge Tracker -- in-memory state, persisted via Export/Import JSON (no storage).
+   =========================================================================== */
+const COMMISSION = 0.05;                 // matches clv.py DEFAULT_COMMISSION
+
+let state = { seq: 1, backtests: [], forwardBets: [] };
+const nextId = () => state.seq++;
+
+/* ---- shared verdict convention (mirror of index.html / run_strategy.py) ---- */
+const VERDICTS = {
+  'ruled-in':   {label:'RULED-IN',   cls:'ruledin'},
+  'priced':     {label:'PRICED',     cls:'priced'},
+  'to-holdout': {label:'TO-HOLDOUT', cls:'toholdout'},
+  'thin':       {label:'THIN',       cls:'thin'},
+};
+function verdictBadge(v){
+  if(!v) return '<span class="verdict v-none">NO SPLIT</span>';
+  const m = VERDICTS[v] || {label:String(v).toUpperCase(), cls:'thin'};
+  return `<span class="verdict v-${m.cls}">${m.label}</span>`;
+}
+
+/* ---- formatting + escaping ---- */
+const fmtPct = x => (x==null||isNaN(x)) ? '—' : (x>=0?'+':'') + (x*100).toFixed(2) + '%';
+const money  = x => (x==null||isNaN(x)) ? '—' : (x>=0?'+':'') + x.toFixed(2) + 'u';
+const cls    = x => (x==null||isNaN(x)) ? '' : (x>=0?'pos':'neg');
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---- clv.py-exact P&L + CLV (back and lay) ---- */
+function backPnl(struck, horseWon, stake){ return horseWon ? stake*(struck-1)*(1-COMMISSION) : -stake; }
+function layPnl (struck, horseWon, stake){ return horseWon ? -stake*(struck-1) : stake*(1-COMMISSION); }
+const clvBack = (struck, bsp) => struck/bsp - 1;     //  struck/bsp - 1
+const clvLay  = (struck, bsp) => bsp/struck - 1;     //  bsp/struck - 1  (sign-correct)
+
+/* ===================== tabs ===================== */
+function showTab(t){
+  document.getElementById('pane-bt').classList.toggle('hide', t!=='bt');
+  document.getElementById('pane-fwd').classList.toggle('hide', t!=='fwd');
+  document.getElementById('tab-bt').classList.toggle('active', t==='bt');
+  document.getElementById('tab-fwd').classList.toggle('active', t==='fwd');
+}
+
+/* ===================== TAB 1: backtest log ===================== */
+function btSummary(res){
+  // condense a results.json into the row's headline fields
+  if(res && res.split){
+    const d=res.discovery||{}, h=res.holdout||{};
+    return {
+      cutoff: res.split.date_cutoff,
+      quals: `${(d.qualifiers||0).toLocaleString()} / ${(h.qualifiers||0).toLocaleString()}`,
+      edge: (h.edge_bsp_fair!=null ? h.edge_bsp_fair : null),     // headline = holdout fair edge
+      pnl:  (h.clv ? h.clv.pnl_struck : null),
+      roi:  (h.clv ? h.clv.roi_struck : null),
+      verdict: res.verdict || null,
+    };
+  }
+  return {
+    cutoff: null,
+    quals: (res.qualifier_count!=null ? res.qualifier_count.toLocaleString() : '—'),
+    edge: (res.edge_bsp_fair!=null ? res.edge_bsp_fair : null),
+    pnl:  (res.clv ? res.clv.pnl_struck : null),
+    roi:  (res.clv ? res.clv.roi_struck : null),
+    verdict: null,
+  };
+}
+
+function addBacktest(name, res){
+  state.backtests.unshift({ id: nextId(), name: name||'(unnamed)',
+    ts: new Date().toISOString().slice(0,16).replace('T',' '), res, open:false });
+  renderBacktests();
+}
+
+function _parseBtJson(){
+  const err = document.getElementById('bt-err'); err.textContent='';
+  const raw = document.getElementById('bt-json').value.trim();
+  if(!raw){ err.textContent='Paste a strategy or results JSON first.'; return null; }
+  try { return JSON.parse(raw); }
+  catch(e){ err.textContent='Invalid JSON: '+e.message; return null; }
+}
+
+async function runViaBridge(){
+  const err = document.getElementById('bt-err'); err.textContent='';
+  const obj = _parseBtJson(); if(!obj) return;
+  if(!obj.selection_rules){ err.textContent='This looks like a result, not a strategy — use "Log result JSON".'; return; }
+  const name = document.getElementById('bt-name').value.trim();
+  const ep = document.getElementById('bt-endpoint').value.trim() || 'http://127.0.0.1:8765/run';
+  err.textContent = 'Running via bridge…';
+  let res;
+  try {
+    const r = await fetch(ep, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(obj)});
+    res = await r.json();
+  } catch(e){
+    err.textContent='Bridge not reachable — start it: python run_strategy.py --serve';
+    return;
+  }
+  if(!res.ok){ err.textContent='Strategy not run: '+(res.errors||[]).join('; '); return; }
+  err.textContent='';
+  addBacktest(name, res);
+  document.getElementById('bt-json').value='';
+}
+
+function logResultJSON(){
+  const err = document.getElementById('bt-err');
+  const obj = _parseBtJson(); if(!obj) return;
+  if(obj.selection_rules && !('ok' in obj)){ err.textContent='This looks like a strategy — use "Run via bridge".'; return; }
+  if(!('clv' in obj || 'holdout' in obj || 'qualifier_count' in obj)){
+    err.textContent='Not a recognised results.json (no clv / holdout / qualifier_count).'; return; }
+  addBacktest(document.getElementById('bt-name').value.trim(), obj);
+  document.getElementById('bt-json').value='';
+}
+
+function toggleBt(id){
+  const b = state.backtests.find(x=>x.id===id); if(b){ b.open=!b.open; renderBacktests(); }
+}
+function removeBt(id){
+  state.backtests = state.backtests.filter(x=>x.id!==id); renderBacktests();
+}
+
+function btDetail(res){
+  // full discovery/holdout breakdown (mirrors index.html's split table)
+  if(!res.split){
+    const c=res.clv;
+    const base = res.bsp_baseline_fair ? res.bsp_baseline_fair.roi_bsp : null;
+    return `<div class="detail"><table>
+      <tr><th>source</th><td>${esc(res.source_csv||'')}</td></tr>
+      <tr><th>scored bets</th><td>${c?c.n_bets.toLocaleString():'—'}</td></tr>
+      <tr><th>ROI @struck (wap)</th><td class="${cls(c&&c.roi_struck)}">${fmtPct(c&&c.roi_struck)}</td></tr>
+      <tr><th>ROI @BSP (selection)</th><td class="${cls(c&&c.roi_bsp)}">${fmtPct(c&&c.roi_bsp)}</td></tr>
+      <tr><th>fair-null baseline @BSP</th><td>${fmtPct(base)}</td></tr>
+      <tr><th>edge vs BSP (fair)</th><td class="${cls(res.edge_bsp_fair)}">${fmtPct(res.edge_bsp_fair)}</td></tr>
+    </table><div class="hint">No split → no verdict. Add a discovery/holdout cutoff in the strategy for a verdict.</div></div>`;
+  }
+  const d=res.discovery||{}, h=res.holdout||{};
+  const g=(b,k)=> b.clv? b.clv[k] : null;
+  const bl=(b,k)=> (b[k]||{}).roi_bsp;
+  const r=(lab,dv,hv)=>`<tr><th>${lab}</th><td class="num ${cls(dv)}">${fmtPct(dv)}</td><td class="num ${cls(hv)}">${fmtPct(hv)}</td></tr>`;
+  return `<div class="detail"><table>
+    <tr><th>${esc(res.source_csv||'')}</th><th class="num">discovery</th><th class="num">holdout</th></tr>
+    <tr><th>scored bets</th><td class="num">${(d.scored_bets||0).toLocaleString()}</td><td class="num">${(h.scored_bets||0).toLocaleString()}</td></tr>
+    ${r('ROI @struck (wap)', g(d,'roi_struck'), g(h,'roi_struck'))}
+    ${r('ROI @BSP (selection)', g(d,'roi_bsp'), g(h,'roi_bsp'))}
+    ${r('baseline @BSP (full-field)', bl(d,'bsp_baseline_fullfield'), bl(h,'bsp_baseline_fullfield'))}
+    ${r('edge vs BSP (full-field)', d.edge_bsp_fullfield, h.edge_bsp_fullfield)}
+    ${r('baseline @BSP (fair null)', bl(d,'bsp_baseline_fair'), bl(h,'bsp_baseline_fair'))}
+    ${r('edge vs BSP — HEADLINE', d.edge_bsp_fair, h.edge_bsp_fair)}
+  </table><div class="hint">${esc(res.verdict_reason||'')}</div></div>`;
+}
+
+function renderBacktests(){
+  const t = document.getElementById('bt-table');
+  document.getElementById('bt-count').textContent = state.backtests.length ? `(${state.backtests.length})` : '';
+  let h = `<tr><th></th><th>strategy</th><th>logged</th><th>split @</th><th>qualifiers</th>
+    <th class="num">edge vs BSP</th><th class="num">P&amp;L net 5%</th><th class="num">ROI@struck</th>
+    <th>verdict</th><th></th></tr>`;
+  if(!state.backtests.length){
+    h += `<tr class="empty"><td colspan="10">No backtests logged — run one above.</td></tr>`;
+  } else {
+    for(const b of state.backtests){
+      const s = btSummary(b.res);
+      h += `<tr>
+        <td><button class="x" title="detail" onclick="toggleBt(${b.id})">${b.open?'▾':'▸'}</button></td>
+        <td>${esc(b.name)}</td>
+        <td class="hint">${esc(b.ts)}</td>
+        <td>${s.cutoff?esc(s.cutoff):'<span class="hint">—</span>'}</td>
+        <td class="num">${s.quals}</td>
+        <td class="num ${cls(s.edge)}">${fmtPct(s.edge)}</td>
+        <td class="num ${cls(s.pnl)}">${money(s.pnl)}</td>
+        <td class="num ${cls(s.roi)}">${fmtPct(s.roi)}</td>
+        <td>${verdictBadge(s.verdict)}</td>
+        <td><button class="x" title="remove" onclick="removeBt(${b.id})">×</button></td></tr>`;
+      if(b.open) h += `<tr><td></td><td colspan="9">${btDetail(b.res)}</td></tr>`;
+    }
+  }
+  t.innerHTML = h;
+}
+
+/* ===================== TAB 2: forward bets ===================== */
+function betCLV(bet){
+  if(bet.bsp==null || !(bet.bsp>1) || !(bet.struck>1)) return null;
+  return bet.side==='lay' ? clvLay(bet.struck, bet.bsp) : clvBack(bet.struck, bet.bsp);
+}
+function betPnl(bet){
+  if(bet.result==='void' || bet.result==='pending') return null;
+  const horseWon = bet.result==='won';
+  return bet.side==='lay' ? layPnl(bet.struck, horseWon, bet.stake)
+                          : backPnl(bet.struck, horseWon, bet.stake);
+}
+
+function addForwardBet(){
+  const err = document.getElementById('f-err'); err.textContent='';
+  const struck = parseFloat(document.getElementById('f-struck').value);
+  if(!(struck>1)){ err.textContent='Struck price must be > 1.0'; return; }
+  const stake = parseFloat(document.getElementById('f-stake').value);
+  if(!(stake>=0)){ err.textContent='Stake must be ≥ 0'; return; }
+  const bspRaw = document.getElementById('f-bsp').value.trim();
+  const bsp = bspRaw==='' ? null : parseFloat(bspRaw);
+  state.forwardBets.unshift({
+    id: nextId(),
+    date: document.getElementById('f-date').value || new Date().toISOString().slice(0,10),
+    strat: document.getElementById('f-strat').value.trim(),
+    sel: document.getElementById('f-sel').value.trim(),
+    side: document.getElementById('f-side').value,
+    struck, bsp,
+    result: document.getElementById('f-result').value,
+    stake,
+  });
+  document.getElementById('f-struck').value='';
+  document.getElementById('f-bsp').value='';
+  document.getElementById('f-sel').value='';
+  renderForwardBets();
+}
+
+function updateBet(id, field, raw){
+  const b = state.forwardBets.find(x=>x.id===id); if(!b) return;
+  if(field==='bsp'){ b.bsp = (raw.trim()===''? null : parseFloat(raw)); }
+  else if(field==='result'){ b.result = raw; }
+  renderForwardBets();
+}
+function removeFwd(id){ state.forwardBets = state.forwardBets.filter(x=>x.id!==id); renderForwardBets(); }
+
+function renderForwardBets(){
+  const bets = state.forwardBets;
+  // CLV-first aggregates
+  const priced = bets.filter(b=>betCLV(b)!=null);
+  const settled = bets.filter(b=>betPnl(b)!=null);
+  const meanCLV = priced.length ? priced.reduce((s,b)=>s+betCLV(b),0)/priced.length : null;
+  const beat = priced.length ? priced.filter(b=>betCLV(b)>0).length/priced.length : null;
+  const staked = settled.reduce((s,b)=>s+b.stake,0);
+  const pnl = settled.reduce((s,b)=>s+betPnl(b),0);
+  const roi = staked>0 ? pnl/staked : null;
+  const pending = bets.filter(b=>b.result==='pending').length;
+
+  const stat=(v,l,c='')=>`<div class="stat"><div class="v ${c}">${v}</div><div class="l">${l}</div></div>`;
+  document.getElementById('fwd-stats').innerHTML =
+    stat(bets.length, `bets (${settled.length} settled · ${pending} pending)`) +
+    stat(meanCLV!=null?fmtPct(meanCLV):'—', 'mean CLV', meanCLV!=null?cls(meanCLV):'accent') +
+    stat(beat!=null?(beat*100).toFixed(0)+'%':'—', 'beat the close') +
+    stat(money(pnl), 'P&L net 5%', cls(pnl)) +
+    stat(roi!=null?fmtPct(roi):'—', 'ROI', roi!=null?cls(roi):'');
+  document.getElementById('fwd-count').textContent = bets.length ? `(${bets.length})` : '';
+
+  const t = document.getElementById('fwd-table');
+  let h = `<tr><th>date</th><th>strategy</th><th>selection</th><th>side</th>
+    <th class="num">struck</th><th class="num">BSP</th><th>result</th>
+    <th class="num">CLV</th><th class="num">P&amp;L</th><th></th></tr>`;
+  if(!bets.length){
+    h += `<tr class="empty"><td colspan="10">No forward bets yet — log one above.</td></tr>`;
+  } else {
+    for(const b of bets){
+      const c = betCLV(b), p = betPnl(b);
+      const opts = ['pending','won','lost','void'].map(o=>
+        `<option value="${o}"${b.result===o?' selected':''}>${o}</option>`).join('');
+      h += `<tr>
+        <td class="hint">${esc(b.date)}</td>
+        <td>${esc(b.strat)||'<span class="hint">—</span>'}</td>
+        <td>${esc(b.sel)||'<span class="hint">—</span>'}</td>
+        <td class="side-${b.side}">${b.side}</td>
+        <td class="num">${b.struck.toFixed(2)}</td>
+        <td class="num"><input type="number" step="0.01" min="1.01" value="${b.bsp==null?'':b.bsp}"
+              placeholder="—" onchange="updateBet(${b.id},'bsp',this.value)"></td>
+        <td><select onchange="updateBet(${b.id},'result',this.value)">${opts}</select></td>
+        <td class="num ${cls(c)}">${c==null?'<span class="hint">pending</span>':fmtPct(c)}</td>
+        <td class="num ${cls(p)}">${p==null?'<span class="hint">—</span>':money(p)}</td>
+        <td><button class="x" title="remove" onclick="removeFwd(${b.id})">×</button></td></tr>`;
+    }
+  }
+  t.innerHTML = h;
+}
+
+/* ===================== persistence (Export / Import) ===================== */
+function exportState(){
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'edge_tracker_state.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+function importState(input){
+  const f = input.files && input.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const s = JSON.parse(r.result);
+      state.backtests = Array.isArray(s.backtests) ? s.backtests : [];
+      state.forwardBets = Array.isArray(s.forwardBets) ? s.forwardBets : [];
+      const maxId = Math.max(0, ...state.backtests.map(b=>b.id||0), ...state.forwardBets.map(b=>b.id||0));
+      state.seq = Math.max(s.seq||0, maxId+1);
+      renderAll();
+    } catch(e){ alert('Import failed: '+e.message); }
+  };
+  r.readAsText(f);
+  input.value='';
+}
+
+/* ===================== init ===================== */
+function renderAll(){ renderBacktests(); renderForwardBets(); }
+function init(){
+  document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+  renderAll();
+}
+init();
+</script>
+</body>
+</html>

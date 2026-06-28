@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Racing Edge — rule lab</title>
+<style>
+  :root{
+    --bg:#f6f6f3; --card:#ffffff; --ink:#1b1c1e; --muted:#73767c; --faint:#9aa0a6;
+    --line:rgba(20,20,20,0.10); --line-soft:rgba(20,20,20,0.06);
+    --accent:#2f6fed; --chip:#f3f4f6; --chip-line:rgba(20,20,20,0.12);
+    --ok:#1a8f4a; --bad:#d23b3b; --warn:#c98a00; --grey:#8a9099; --neutral:#c2c6cc;
+    --serif: ui-serif, Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font:15px/1.6 var(--sans);
+    -webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88em;
+    background:var(--chip);padding:1px 6px;border-radius:6px}
+  /* top bar */
+  .topbar{display:flex;align-items:baseline;justify-content:space-between;gap:20px;
+    padding:18px 28px;border-bottom:1px solid var(--line);background:var(--card)}
+  .brand{font-family:var(--serif);font-size:20px;letter-spacing:.2px}
+  .brand .sub{font-family:var(--sans);font-size:12px;color:var(--faint);margin-left:8px;
+    text-transform:uppercase;letter-spacing:.14em}
+  nav{display:flex;gap:4px}
+  .navbtn{font-size:13px;color:var(--muted);background:none;border:none;cursor:pointer;
+    padding:6px 12px;border-radius:999px}
+  .navbtn:hover{color:var(--ink)}
+  .navbtn.on{color:var(--ink);background:var(--chip)}
+  /* layout */
+  main{max-width:940px;margin:0 auto;padding:28px 28px 80px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:22px 24px;margin-bottom:18px}
+  .card.tight{padding:16px 18px}
+  .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:0 0 12px}
+  h2.section{font-family:var(--serif);font-weight:600;font-size:19px;margin:0 0 4px}
+  .muted{color:var(--muted)} .faint{color:var(--faint)}
+  .small{font-size:12.5px}
+  .hr{height:1px;background:var(--line-soft);margin:16px 0;border:0}
+  /* buttons */
+  .btn{font:inherit;font-size:13.5px;font-weight:500;padding:9px 16px;border-radius:10px;
+    border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer}
+  .btn:hover{opacity:.88}
+  .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+  .btn.ghost:hover{border-color:var(--ink);opacity:1}
+  .btn.sm{padding:6px 12px;font-size:12.5px;border-radius:8px}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .link{background:none;border:none;color:var(--muted);cursor:pointer;font:inherit;font-size:12.5px;
+    text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;padding:0}
+  .link:hover{color:var(--ink)}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px}
+  /* chip-rule sentence */
+  .sentence{font-size:16px;line-height:2.1}
+  .sentence .lead{color:var(--muted)}
+  .comb{font:inherit;font-size:15px;font-weight:600;color:var(--accent);background:none;border:none;
+    cursor:pointer;padding:0 2px;border-bottom:1px dotted var(--accent)}
+  .comb.ro{cursor:default;border-bottom:none}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--chip);
+    border:1px solid var(--chip-line);border-radius:999px;padding:4px 12px;font-size:13.5px;
+    margin:0 1px;white-space:nowrap}
+  .chip.der{background:#f4f0fb;border-color:#e3d8f7}
+  .chip-x{border:none;background:none;cursor:pointer;color:var(--faint);font-size:15px;line-height:1;padding:0}
+  .chip-x:hover{color:var(--bad)}
+  .subgroup{display:inline;color:var(--muted)}
+  .addchip{border:1px dashed var(--chip-line);background:none;border-radius:999px;
+    padding:4px 12px;font-size:13px;color:var(--muted);cursor:pointer;margin:0 1px}
+  .addchip:hover{border-style:solid;border-color:var(--ink);color:var(--ink)}
+  /* picker */
+  .picker-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .search{width:100%;padding:10px 13px;border-radius:10px;border:1px solid var(--line);
+    background:var(--bg);color:var(--ink);font:inherit;font-size:14px;margin-bottom:14px}
+  .search:focus{outline:none;border-color:var(--accent)}
+  .grp{margin-bottom:14px}
+  .grp .gh{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+  .fields{display:flex;flex-wrap:wrap;gap:7px}
+  .fchip{border:1px solid var(--line);background:var(--card);border-radius:999px;
+    padding:6px 13px;font-size:13px;cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+  .fchip:hover{border-color:var(--ink)}
+  .fchip .ty{color:var(--faint);font-size:11px}
+  .fchip.der:hover{border-color:#8b5cf6}
+  .fchip.blocked{cursor:not-allowed;color:var(--faint);background:var(--bg);opacity:.7}
+  .fchip.blocked:hover{border-color:var(--line)}
+  .fchip .lock{font-size:11px;color:var(--bad)}
+  /* condition editor */
+  .editor label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:0 0 4px}
+  .editor .field-row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+  select,input[type=text],input[type=number],input[type=date]{padding:9px 11px;border-radius:9px;
+    border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:14px}
+  select:focus,input:focus{outline:none;border-color:var(--accent)}
+  .leak-note{background:#fbf3e6;border:1px solid #f0dcb4;color:#8a6310;border-radius:10px;
+    padding:9px 12px;font-size:12.5px;margin:10px 0}
+  .err{color:var(--bad);font-size:13px;min-height:18px;margin-top:8px}
+  /* split + betting controls */
+  .ctl-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13.5px}
+  .ctl-row input[type=date]:disabled{opacity:.4}
+  .switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:500}
+  /* verdict header */
+  .verdict{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:16px;margin:2px 0 2px}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+  .d-ok{background:var(--ok)} .d-bad{background:var(--bad)} .d-warn{background:var(--warn)}
+  .d-grey{background:var(--grey)} .d-neutral{background:var(--neutral)}
+  .vlabel{font-weight:600} .vreason{color:var(--muted);font-size:13.5px}
+  /* stat columns */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:6px}
+  @media(max-width:640px){.cols{grid-template-columns:1fr}}
+  .statcol{border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .statcol .lab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .bignum{font-family:var(--serif);font-size:34px;line-height:1.1;margin:6px 0 2px}
+  .bignum.pos{color:var(--ok)} .bignum.neg{color:var(--bad)}
+  .statline{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);padding:3px 0}
+  .statline b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+  .timing{font-size:12px;color:var(--faint);margin-top:8px}
+  .timing .v{font-variant-numeric:tabular-nums}
+  .rulebar{font-size:14px;color:var(--ink);margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line-soft)}
+  /* scan grid */
+  .summary{font-size:14px;color:var(--muted);margin-bottom:16px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+  .race{border:1px solid var(--line);border-radius:12px;padding:15px 16px;background:var(--card);cursor:pointer}
+  .race:hover{border-color:var(--ink)}
+  .race .rc{font-family:var(--serif);font-size:17px}
+  .race .rc .t{color:var(--muted);font-weight:400;font-size:14px;margin-left:6px}
+  .race .meta{font-size:12.5px;color:var(--faint);margin:4px 0 10px}
+  .race .top{font-size:13.5px}
+  .race .top .n{font-weight:600}
+  .race .more{margin-top:10px;border-top:1px solid var(--line-soft);padding-top:8px;font-size:12.5px}
+  .race .more .q{display:flex;justify-content:space-between;padding:2px 0;color:var(--muted)}
+  .race .more .q b{color:var(--ink);font-weight:500}
+  /* track */
+  .subnav{display:flex;gap:6px;margin-bottom:18px}
+  .subnav .sb{font-size:13px;color:var(--muted);background:none;border:1px solid var(--line);
+    border-radius:999px;padding:6px 14px;cursor:pointer}
+  .subnav .sb.on{color:var(--ink);border-color:var(--ink)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--faint);font-weight:500;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;padding:7px 8px;border-bottom:1px solid var(--line)}
+  td{padding:8px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  td.pos{color:var(--ok)} td.neg{color:var(--bad)}
+  td input,td select{padding:5px 7px;font-size:12.5px}
+  tr.empty td{color:var(--faint);font-style:italic;text-align:center;padding:20px}
+  .stats{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:6px}
+  .stat .v{font-family:var(--serif);font-size:24px}
+  .stat .v.pos{color:var(--ok)} .stat .v.neg{color:var(--bad)}
+  .stat .l{font-size:11px;color:var(--faint);letter-spacing:.1em;text-transform:uppercase}
+  .vchip{font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;display:inline-flex;align-items:center;gap:6px}
+  .empty-state{text-align:center;color:var(--muted);padding:40px 20px}
+  .empty-state .big{font-family:var(--serif);font-size:20px;color:var(--ink);margin-bottom:6px}
+  details.json>summary{cursor:pointer;color:var(--faint);font-size:12px;list-style:none}
+  details.json pre{background:var(--bg);border:1px solid var(--line);border-radius:10px;
+    padding:12px;font-size:11.5px;overflow:auto;max-height:240px}
+  .hide{display:none}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Racing Edge<span class="sub">rule lab</span></div>
+  <nav id="nav"></nav>
+</header>
+<main id="main"></main>
+
+<script>
+/* ===========================================================================
+   index_editorial.html -- editorial-cards restyle (Direction F) + folded-in
+   tracker. PRESENTATION ONLY. Same JSON contracts, same bridge endpoints
+   (/run, /scan), same four verdict states, same leakage gate, same price-free
+   scanner display, same clv.py P&L (back/lay CLV reciprocal, net 5%).
+   Persistence = Export/Import JSON only (no localStorage/window.storage).
+   =========================================================================== */
+const MANIFEST = {
+  source_csv: "data/joined/joined_gb_2018_2026.csv",
+  n_columns: 52,
+  operators: { numeric:["<","≤","=","≥",">","range"], categorical:["is","in"], flag:["true","false"] },
+  derived_leakage_note: "prior-run only — must join to history STRICTLY before current race date; no same-race or future data.",
+  fields: [
+    {name:"date",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"region",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"course",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"course_detail",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
+    {name:"off",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"race_name",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"type",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"class",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"pattern",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
+    {name:"rating_band",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
+    {name:"age_band",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"sex_rest",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
+    {name:"dist",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"dist_f",stage:"pre_race",type:"numeric",dtype:"object",selectable:true,coerce:true},
+    {name:"dist_m",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true},
+    {name:"going",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"surface",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"ran",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true},
+    {name:"num",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true},
+    {name:"pos",stage:"post_race",type:"numeric",dtype:"int64",selectable:false,note:"Finishing position — the outcome itself."},
+    {name:"draw",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
+    {name:"ovr_btn",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Beaten distance — result-derived."},
+    {name:"btn",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Beaten distance — result-derived."},
+    {name:"horse",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"age",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true},
+    {name:"sex",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"lbs",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true},
+    {name:"hg",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"time",stage:"post_race",type:"categorical",dtype:"object",selectable:false,note:"Race time — result-derived."},
+    {name:"secs",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Race time — result-derived."},
+    {name:"dec",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Industry SP — settled at-the-off price."},
+    {name:"jockey",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"trainer",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"prize",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
+    {name:"or",stage:"pre_race",type:"numeric",dtype:"object",selectable:true,coerce:true},
+    {name:"rpr",stage:"post_race",type:"numeric",dtype:"int64",selectable:false,note:"Racing Post Rating — assigned post-race; leakage."},
+    {name:"sire",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"dam",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"damsire",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"owner",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"comment",stage:"post_race",type:"categorical",dtype:"object",selectable:false,note:"In-running closeup — reads the result."},
+    {name:"bsp",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Betfair Starting Price — settled price."},
+    {name:"pre_min",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Settled market data."},
+    {name:"pre_max",stage:"post_race",type:"numeric",dtype:"int64",selectable:false,note:"Settled market data."},
+    {name:"ip_min",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"In-play — during the race."},
+    {name:"ip_max",stage:"post_race",type:"numeric",dtype:"int64",selectable:false,note:"In-play — during the race."},
+    {name:"pre_vol",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Settled market data."},
+    {name:"ip_vol",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"In-play — during the race."},
+    {name:"wap",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Weighted avg price — settled."},
+    {name:"morning_wap",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Market-derived; post_race for safety."},
+    {name:"morning_vol",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Market-derived; post_race for safety."},
+    {name:"wap_valid",stage:"post_race",type:"flag",dtype:"int64",selectable:false,note:"Validity flag on post-race WAP."}
+  ],
+  derived_features: [
+    {name:"career_wins",type:"numeric",selectable:true,stage:"derived",source_columns:["horse","pos"]},
+    {name:"career_runs",type:"numeric",selectable:true,stage:"derived",source_columns:["horse"]},
+    {name:"won_course_flag",type:"flag",selectable:true,stage:"derived",source_columns:["course","horse","pos"]},
+    {name:"won_dist_flag",type:"flag",selectable:true,stage:"derived",source_columns:["dist_f","horse","pos"]},
+    {name:"won_cd_flag",type:"flag",selectable:true,stage:"derived",source_columns:["course","dist_f","horse","pos"]},
+    {name:"class_change",type:"categorical",selectable:true,stage:"derived",source_columns:["class"],categories:["up","same","down"]},
+    {name:"or_trajectory",type:"numeric",selectable:true,stage:"derived",source_columns:["or"]},
+    {name:"hcap_transition",type:"categorical",selectable:true,stage:"derived",source_columns:["type","rating_band"]},
+    {name:"going_suit",type:"numeric",selectable:true,stage:"derived",source_columns:["going","pos"]},
+    {name:"sire_going_profile",type:"numeric",selectable:true,stage:"derived",source_columns:["sire","going","pos"]},
+    {name:"sire_dist_profile",type:"numeric",selectable:true,stage:"derived",source_columns:["sire","dist_f","pos"]},
+    {name:"first_time_hg",type:"flag",selectable:true,stage:"derived",source_columns:["hg"]},
+    {name:"run_style_proxy",type:"categorical",selectable:true,stage:"derived",source_columns:["comment"],categories:["led","prominent","midfield","held_up"]}
+  ]
+};
+
+const ENDPOINT = 'http://127.0.0.1:8765/run';
+const SCAN_ENDPOINT = 'http://127.0.0.1:8765/scan';
+const COMMISSION = 0.05;
+
+/* ---- shared verdict convention (four states + neutral no-split) ---- */
+const VERDICTS = {
+  'ruled-in':   {label:'Ruled-in',   cls:'ok'},
+  'priced':     {label:'Priced',     cls:'bad'},
+  'to-holdout': {label:'To-holdout', cls:'warn'},
+  'thin':       {label:'Thin',       cls:'grey'},
+};
+function verdictMeta(v){ return v ? (VERDICTS[v] || {label:v, cls:'grey'}) : {label:'No split', cls:'neutral'}; }
+function verdictHeader(v, reason){
+  const m = verdictMeta(v);
+  return `<div class="verdict"><span class="dot d-${m.cls}"></span><span class="vlabel">${m.label}</span>`
+    + (reason ? `<span class="vreason">— ${esc(reason)}</span>` : '') + `</div>`;
+}
+function verdictChip(v){
+  const m = verdictMeta(v);
+  return `<span class="vchip"><span class="dot d-${m.cls}"></span>${m.label}</span>`;
+}
+
+/* ---- formatting ---- */
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtPct = x => (x==null||isNaN(x)) ? '—' : (x>=0?'+':'') + (x*100).toFixed(2) + '%';
+const money  = x => (x==null||isNaN(x)) ? '—' : (x>=0?'+':'') + Number(x).toFixed(2) + 'u';
+const signCls = x => (x==null||isNaN(x)) ? '' : (x>=0?'pos':'neg');
+const nfmt = n => (n==null) ? '—' : Number(n).toLocaleString();
+
+/* ---- clv.py-exact P&L + CLV (back/lay; reciprocal, not negated) ---- */
+const clvBack = (s,b) => s/b - 1;
+const clvLay  = (s,b) => b/s - 1;
+const backPnl = (s,won,k) => won ? k*(s-1)*(1-COMMISSION) : -k;
+const layPnl  = (s,won,k) => won ? -k*(s-1) : k*(1-COMMISSION);
+
+/* =========================== state =========================== */
+let nodeSeq = 1;
+const ROOT = { id:0, kind:'group', combinator:'all', children:[] };
+const state = {
+  mode: 'build',
+  activeGroupId: 0,
+  picker: { open:false, groupId:0, field:null, fieldGroup:null },
+  split: { on:false, cutoff:'2024-01-01' },
+  lastBacktest: null, lastBacktestRule: '',
+  lastScan: null, lastScanRule: '',
+  busy: '',
+  trackSub: 'log',
+  track: { seq:1, backtests:[], forwardBets:[] },
+};
+
+/* ---- rule tree ---- */
+function findGroup(id, node=ROOT){
+  if(node.id===id) return node;
+  for(const c of node.children) if(c.kind==='group'){ const r=findGroup(id,c); if(r) return r; }
+  return null;
+}
+function findParent(id, node=ROOT){
+  for(const c of node.children){
+    if(c.id===id) return node;
+    if(c.kind==='group'){ const r=findParent(id,c); if(r) return r; }
+  }
+  return null;
+}
+function countRules(node=ROOT){ return node.children.reduce((n,c)=> n + (c.kind==='rule'?1:countRules(c)), 0); }
+function serializeNode(n){
+  if(n.kind==='rule'){
+    const o={ field:n.field, type:n.type, dtype:n.dtype, op:n.op, value:n.value };
+    if(n.coerce) o.coerce=true;
+    o.source_columns=n.source_columns;
+    if(n.leakage_note) o.leakage_note=n.leakage_note;
+    return o;
+  }
+  return { combinator:n.combinator, children:n.children.map(serializeNode) };
+}
+function currentStrategy(extra){
+  const s = { source_csv:MANIFEST.source_csv, selection_rules:serializeNode(ROOT) };
+  if(state.split.on) s.split = { mode:'date', date_cutoff: state.split.cutoff || '2024-01-01' };
+  return Object.assign(s, extra||{});
+}
+
+/* =========================== chip sentence =========================== */
+function chipLabel(r){
+  const v=r.value;
+  if(r.type==='flag') return `${r.field} is ${v}`;
+  if(r.type==='categorical') return r.op==='in' ? `${r.field} in ${Array.isArray(v)?v.join(', '):v}` : `${r.field} = ${v}`;
+  if(r.op==='range') return `${v[0]} ≤ ${r.field} ≤ ${v[1]}`;
+  return `${r.field} ${r.op} ${v}`;
+}
+function renderSentenceHTML(group, isRoot, ro){
+  const word = group.combinator==='all' ? 'all' : 'any';
+  let h = isRoot ? `<span class="lead">match </span>` : '';
+  h += ro
+    ? `<span class="comb ro">${word}</span>`
+    : `<button class="comb" title="toggle all / any" onclick="toggleComb(${group.id})">${word}</button>`;
+  const items = group.children.map(c => {
+    if(c.kind==='rule'){
+      const x = ro ? '' : ` <button class="chip-x" title="remove" onclick="removeNode(${c.id})">×</button>`;
+      return `<span class="chip${c.group==='derived'?' der':''}">${esc(chipLabel(c))}${x}</span>`;
+    }
+    return `<span class="subgroup">( ${renderSentenceHTML(c,false,ro)} )</span>`;
+  });
+  if(items.length) h += ' · ' + items.join(' ');
+  if(!ro){
+    h += ` <button class="addchip" onclick="openPicker(${group.id})">+ add</button>`;
+    h += ` <button class="addchip" onclick="addGroup(${group.id})">+ group</button>`;
+  } else if(!items.length){
+    h += ` <span class="faint">(no conditions)</span>`;
+  }
+  return h;
+}
+
+/* ---- tree mutations ---- */
+function toggleComb(id){ const g=findGroup(id); if(g){ g.combinator = g.combinator==='all'?'any':'all'; renderMode(); } }
+function addGroup(id){ const p=findGroup(id)||ROOT; const ng={id:nodeSeq++,kind:'group',combinator:'all',children:[]}; p.children.push(ng); state.activeGroupId=ng.id; renderMode(); }
+function removeNode(id){ const p=findParent(id); if(!p) return; p.children=p.children.filter(c=>c.id!==id); renderMode(); }
+function clearRule(){ ROOT.children=[]; state.activeGroupId=0; renderMode(); }
+
+/* ---- picker ---- */
+function openPicker(gid){ state.picker={open:true,groupId:gid,field:null,fieldGroup:null}; renderMode(); }
+function closePicker(){ state.picker.open=false; renderMode(); }
+function fieldListHTML(q){
+  q=(q||'').toLowerCase();
+  const match = f => f.name.toLowerCase().includes(q);
+  const pre = MANIFEST.fields.filter(f=>f.stage==='pre_race' && match(f));
+  const der = MANIFEST.derived_features.filter(match);
+  const post = MANIFEST.fields.filter(f=>f.stage==='post_race' && match(f));
+  const chips = (list, gk) => list.length
+    ? list.map(f=>{
+        if(gk==='post') return `<span class="fchip blocked" title="${esc(f.note||'post-race / leakage')}">${f.name}<span class="lock">⊘ leakage</span></span>`;
+        const cls = gk==='der' ? 'fchip der' : 'fchip';
+        return `<button class="${cls}" onclick="chooseField('${f.name}','${gk}')">${f.name}<span class="ty">${f.type}${f.coerce?' · coerce':''}</span></button>`;
+      }).join('')
+    : `<span class="faint small">— none —</span>`;
+  return `<div class="grp"><div class="gh">Pre-race</div><div class="fields">${chips(pre,'pre')}</div></div>`
+    + `<div class="grp"><div class="gh">Derived · prior-run</div><div class="fields">${chips(der,'der')}</div></div>`
+    + `<div class="grp"><div class="gh">Post-race · blocked</div><div class="fields">${chips(post,'post')}</div></div>`;
+}
+function updateFieldList(){ const el=document.getElementById('fieldList'); if(el) el.innerHTML=fieldListHTML(document.getElementById('pickSearch').value); }
+function chooseField(name, gk){
+  const def = gk==='der' ? MANIFEST.derived_features.find(f=>f.name===name)
+                         : MANIFEST.fields.find(f=>f.name===name && f.stage==='pre_race');
+  state.picker.field = Object.assign({}, def, {group: gk==='der'?'derived':'pre'});
+  state.picker.fieldGroup = gk;
+  renderMode();
+}
+function conditionEditorHTML(){
+  const f = state.picker.field;
+  const ops = MANIFEST.operators[f.type];
+  let h = `<div class="editor">`;
+  if(f.group==='derived') h += `<div class="leak-note">⚠ <b>Prior-run only.</b> ${esc(MANIFEST.derived_leakage_note)}</div>`;
+  h += `<div class="field-row">
+    <div><label>Field</label><div class="chip">${f.name}</div></div>
+    <div><label>Operator</label><select id="op" onchange="updateValWrap()">${ops.map(o=>`<option>${o}</option>`).join('')}</select></div>
+    <div id="valwrap"></div>
+    <div><button class="btn sm" onclick="addCondition()">Add condition</button></div>
+  </div><div class="err" id="cerr"></div></div>`;
+  return h;
+}
+function valWrapHTML(){
+  const f = state.picker.field, op = (document.getElementById('op')||{}).value || MANIFEST.operators[f.type][0];
+  if(f.type==='flag') return '';
+  if(f.type==='categorical'){
+    const ph = op==='in' ? 'value1, value2…' : 'value';
+    const dl = f.categories ? `<datalist id="cats">${f.categories.map(c=>`<option value="${c}">`).join('')}</datalist>` : '';
+    return `<div><label>${op==='in'?'Values (comma-sep)':'Value'}</label><input type="text" id="v1" list="${f.categories?'cats':''}" placeholder="${ph}">${dl}</div>`;
+  }
+  if(op==='range') return `<div><label>Min ≥</label><input type="number" id="v1" step="any" style="width:100px"></div><div><label>Max ≤</label><input type="number" id="v2" step="any" style="width:100px"></div>`;
+  return `<div><label>Value</label><input type="number" id="v1" step="any" style="width:120px"></div>`;
+}
+function updateValWrap(){ const el=document.getElementById('valwrap'); if(el) el.innerHTML=valWrapHTML(); }
+function addCondition(){
+  const f=state.picker.field, op=document.getElementById('op').value, err=document.getElementById('cerr');
+  err.textContent='';
+  let value;
+  if(f.type==='flag'){ value = (op==='true'); }
+  else if(f.type==='categorical'){
+    const raw=(document.getElementById('v1').value||'').trim();
+    if(!raw){ err.textContent='Enter a value.'; return; }
+    value = op==='in' ? raw.split(',').map(s=>s.trim()).filter(Boolean) : raw;
+    if(op==='in' && !value.length){ err.textContent='Enter at least one value.'; return; }
+  } else {
+    if(op==='range'){
+      const a=document.getElementById('v1').value, b=document.getElementById('v2').value;
+      if(a===''||b===''){ err.textContent='Enter both bounds.'; return; }
+      if(+a>+b){ err.textContent='Min must be ≤ Max.'; return; }
+      value=[+a,+b];
+    } else { const a=document.getElementById('v1').value; if(a===''){ err.textContent='Enter a value.'; return; } value=+a; }
+  }
+  const rule={ id:nodeSeq++, kind:'rule', field:f.name, group:f.group, type:f.type, dtype:f.dtype||null,
+    op, value, coerce:!!f.coerce, source_columns:f.source_columns||[f.name],
+    leakage_note: f.group==='derived' ? MANIFEST.derived_leakage_note : undefined };
+  (findGroup(state.picker.groupId)||ROOT).children.push(rule);
+  state.picker.open=false;
+  renderMode();
+}
+
+/* =========================== bridge calls =========================== */
+async function previewCount(){
+  if(!countRules()){ flash('build-msg','Add a condition first.'); return; }
+  setBusy('Counting…');
+  let d;
+  try{ d = await (await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(currentStrategy({mode:'count'}))})).json(); }
+  catch(e){ setBusy(''); flash('build-msg', bridgeDown()); return; }
+  setBusy('');
+  const el=document.getElementById('build-msg');
+  if(el){ el.innerHTML = d.ok ? `<span class="muted">~${nfmt(d.qualifier_count)} qualifiers of ${nfmt(d.rows_scanned)} runners.</span>`
+                              : `<span class="neg">${esc((d.errors||['error']).join('; '))}</span>`; }
+}
+async function runBacktest(){
+  if(!countRules()){ flash('build-msg','Add a condition first.'); return; }
+  setBusy('Running backtest…');
+  let d;
+  try{ d = await (await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(currentStrategy({mode:'backtest'}))})).json(); }
+  catch(e){ setBusy(''); flash('build-msg', bridgeDown()); return; }
+  setBusy('');
+  state.lastBacktest = d;
+  state.lastBacktestRule = renderSentenceHTML(ROOT, true, true);
+  setMode('backtest');
+}
+async function scanToday(){
+  if(!countRules()){ flash('build-msg','Add a condition first.'); return; }
+  setBusy("Scanning today's cards…");
+  let d;
+  try{ d = await (await fetch(SCAN_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(currentStrategy())})).json(); }
+  catch(e){ setBusy(''); flash('build-msg', bridgeDown()); return; }
+  setBusy('');
+  state.lastScan = d;
+  state.lastScanRule = renderSentenceHTML(ROOT, true, true);
+  setMode('scan');
+}
+function bridgeDown(){ return `<span class="neg">Bridge not reachable.</span> <span class="muted">Start it: <code>python run_strategy.py --serve</code></span>`; }
+function flash(id,msg){ const el=document.getElementById(id); if(el) el.innerHTML=msg; }
+function setBusy(s){ state.busy=s; const el=document.getElementById('build-msg'); if(el && s) el.innerHTML=`<span class="muted">${esc(s)}</span>`; }
+
+/* =========================== mode renders =========================== */
+function setMode(m){ state.mode=m; renderNav(); renderMode(); window.scrollTo(0,0); }
+function renderNav(){
+  const modes=[['build','Build'],['backtest','Backtest'],['scan','Scan'],['track','Track']];
+  document.getElementById('nav').innerHTML = modes.map(([k,l])=>
+    `<button class="navbtn${state.mode===k?' on':''}" onclick="setMode('${k}')">${l}</button>`).join('');
+}
+function renderMode(){
+  renderNav();
+  const m=document.getElementById('main');
+  if(state.mode==='build') m.innerHTML = renderBuild();
+  else if(state.mode==='backtest') m.innerHTML = renderBacktestHTML(state.lastBacktest, state.lastBacktestRule);
+  else if(state.mode==='scan') m.innerHTML = renderScanHTML(state.lastScan, state.lastScanRule);
+  else m.innerHTML = renderTrackHTML();
+}
+
+function renderBuild(){
+  const p = state.picker;
+  let picker='';
+  if(p.open){
+    picker = `<div class="card"><div class="picker-head"><h2 class="section">Add a condition</h2><button class="link" onclick="closePicker()">cancel</button></div>`;
+    picker += p.field ? conditionEditorHTML()
+      : `<input id="pickSearch" class="search" placeholder="Find a field…" oninput="updateFieldList()" autofocus><div id="fieldList">${fieldListHTML('')}</div>`;
+    picker += `</div>`;
+  }
+  return `
+    <div class="card">
+      <p class="eyebrow">Rule</p>
+      <div class="sentence">${renderSentenceHTML(ROOT, true, false)}</div>
+      ${countRules()? `<div class="actions"><button class="link" onclick="clearRule()">clear all</button></div>`:''}
+    </div>
+    ${picker}
+    <div class="card tight">
+      <p class="eyebrow">Validation</p>
+      <label class="switch"><input type="checkbox" ${state.split.on?'checked':''} onchange="toggleSplit(this.checked)"> Discovery / holdout split</label>
+      <div class="ctl-row" style="margin-top:10px">
+        <span class="muted small">cutoff</span>
+        <input type="date" value="${state.split.cutoff}" ${state.split.on?'':'disabled'} onchange="state.split.cutoff=this.value">
+        <span class="faint small">discovery ≤ cutoff &lt; holdout · verdict decided on holdout @BSP</span>
+      </div>
+      <div class="faint small" style="margin-top:10px">struck = <code>wap</code> · benchmark = <code>bsp</code> · 5% commission · headline edge is composition-fair vs BSP.</div>
+    </div>
+    <div class="card tight">
+      <div class="actions">
+        <button class="btn" onclick="runBacktest()">Run backtest</button>
+        <button class="btn ghost" onclick="previewCount()">Preview count</button>
+        <button class="btn ghost" onclick="scanToday()">Scan today</button>
+        <span id="build-msg" class="small" style="margin-left:6px"></span>
+      </div>
+      <details class="json" style="margin-top:14px"><summary>view strategy JSON</summary><pre>${esc(JSON.stringify(currentStrategy(),null,2))}</pre></details>
+    </div>`;
+}
+function toggleSplit(on){ state.split.on=on; renderMode(); }
+
+function emptyState(big, sub){ return `<div class="card"><div class="empty-state"><div class="big">${esc(big)}</div><div class="muted">${esc(sub)}</div></div></div>`; }
+function errorCard(d){
+  const fc=d.field_check||{};
+  const extra=(fc.leakage||[]).length?`<div class="leak-note">Post-race columns are blocked — they don't exist before the race runs.</div>`:'';
+  return `<div class="card"><p class="eyebrow">Not run</p><ul class="muted">${(d.errors||['unknown error']).map(e=>`<li>${esc(e)}</li>`).join('')}</ul>${extra}</div>`;
+}
+
+function renderBacktestHTML(d, ruleHTML){
+  if(!d) return emptyState('No backtest yet','Build a rule, then Run backtest.');
+  if(!d.ok) return `<div class="card"><div class="rulebar">${ruleHTML||''}</div></div>` + errorCard(d);
+  const bar = `<div class="rulebar">${ruleHTML||''}</div>`;
+  if(d.split){
+    const col = (lab, blk) => {
+      const e = blk.edge_bsp_fair, c = blk.clv||{};
+      return `<div class="statcol"><div class="lab">${lab}</div>
+        <div class="bignum ${signCls(e)}">${fmtPct(e)}</div>
+        <div class="faint small">edge vs BSP · composition-fair</div>
+        <div class="hr"></div>
+        <div class="statline"><span>qualifiers</span><b>${nfmt(blk.qualifiers)}</b></div>
+        <div class="statline"><span>scored bets</span><b>${nfmt(blk.scored_bets)}</b></div>
+        <div class="statline"><span>ROI @BSP</span><b>${fmtPct(c.roi_bsp)}</b></div>
+        <div class="statline"><span>fair-null baseline</span><b>${fmtPct((blk.bsp_baseline_fair||{}).roi_bsp)}</b></div>
+        <div class="timing">ROI @struck (wap) <span class="v">${fmtPct(c.roi_struck)}</span> — timing artifact, not the headline</div>
+      </div>`;
+    };
+    const promote = d.verdict==='ruled-in'
+      ? `<button class="btn sm" onclick="promoteToTrack()">Promote to Track log →</button>`
+      : `<button class="btn ghost sm" onclick="promoteToTrack()">Log to Track</button>`;
+    return `<div class="card">${bar}
+      <p class="eyebrow">Backtest · discovery / holdout @ ${esc(d.split.date_cutoff)}</p>
+      ${verdictHeader(d.verdict, d.verdict_reason)}
+      <div class="cols">${col('Discovery', d.discovery)}${col('Holdout', d.holdout)}</div>
+      <div class="actions">${promote}<button class="btn ghost sm" onclick="setMode('build')">← Build</button></div>
+    </div>`;
+  }
+  // single population (no split) -> no verdict, neutral header
+  const c=d.clv||{}, fair=(d.bsp_baseline_fair||{}).roi_bsp;
+  return `<div class="card">${bar}
+    <p class="eyebrow">Backtest · single population</p>
+    ${verdictHeader(null, 'enable the discovery / holdout split for a verdict')}
+    <div class="cols"><div class="statcol">
+      <div class="lab">Edge vs BSP · composition-fair</div>
+      <div class="bignum ${signCls(d.edge_bsp_fair)}">${fmtPct(d.edge_bsp_fair)}</div>
+      <div class="hr"></div>
+      <div class="statline"><span>qualifiers</span><b>${nfmt(d.qualifier_count)}</b></div>
+      <div class="statline"><span>scored bets</span><b>${nfmt(d.scored_bets)}</b></div>
+      <div class="statline"><span>ROI @BSP</span><b>${fmtPct(c.roi_bsp)}</b></div>
+      <div class="statline"><span>fair-null baseline</span><b>${fmtPct(fair)}</b></div>
+      <div class="timing">ROI @struck (wap) <span class="v">${fmtPct(c.roi_struck)}</span> — timing artifact, not the headline</div>
+    </div><div class="statcol" style="display:flex;align-items:center;justify-content:center;color:var(--faint);text-align:center">
+      Add a split in Build to<br>get a verdict on held-out races.
+    </div></div>
+    <div class="actions"><button class="btn ghost sm" onclick="setMode('build')">← Build</button></div>
+  </div>`;
+}
+
+function renderScanHTML(d, ruleHTML){
+  if(!d) return emptyState('No scan yet','Build a rule, then Scan today.');
+  const bar = `<div class="rulebar">${ruleHTML||''}</div>`;
+  if(d.cards_missing){
+    return `<div class="card">${bar}<p class="eyebrow">Scan · today</p>
+      <h2 class="section">Today's cards aren't pulled yet</h2>
+      <p class="muted">Pull them, then scan again:</p>
+      <p><code>${esc(d.pull_cmd)}</code></p>
+      <p class="faint small">Looked in: ${(d.searched||[]).map(esc).join(', ')}</p></div>`;
+  }
+  if(!d.ok) return `<div class="card">${bar}</div>` + errorCard(d);
+  const head = `<div class="card">${bar}<p class="eyebrow">Scan · ${esc(d.date)}</p>
+    <div class="summary"><b>${d.n_qualifiers}</b> qualifiers · ${d.n_races_with_qualifier}/${d.n_races_scanned} races · ${d.n_nonrunners_excluded} non-runner/reserve excluded
+    <span class="faint"> · pre-race only, no price/finishing data</span></div>`;
+  if(!d.races.length) return head + `<p class="muted">No qualifiers in today's cards.</p></div>`;
+  const cards = d.races.map(r=>{
+    const top = r.qualifiers.reduce((a,b)=> (Number(b.or)||-1)>(Number(a.or)||-1)?b:a, r.qualifiers[0]);
+    const more = r.qualifiers.map(q=>`<div class="q"><b>${esc(q.horse)}</b><span>or ${q.or==null?'—':q.or} · ${esc(q.jockey||'')}</span></div>`).join('');
+    return `<div class="race" onclick="this.querySelector('.more').classList.toggle('hide')">
+      <div class="rc">${esc(r.course)}<span class="t">${esc(r.off)}</span></div>
+      <div class="meta">${esc(r.type||'?')} · ${esc(r.going||'?')} · field ${r.field_size!=null?r.field_size:'?'}</div>
+      <div class="top"><span class="n">${r.n_qualifiers} qualify</span> · top <b>${esc(top.horse)}</b> <span class="muted">or ${top.or==null?'—':top.or}</span></div>
+      <div class="more hide">${more}</div>
+    </div>`;
+  }).join('');
+  return head + `<div class="grid">${cards}</div>
+    <div class="actions"><button class="btn ghost sm" onclick="setMode('build')">← Build</button></div></div>`;
+}
+
+/* =========================== track mode =========================== */
+function promoteToTrack(){
+  const d=state.lastBacktest; if(!d || !d.ok) return;
+  const ruleText = (state.lastBacktestRule||'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+  state.track.backtests.unshift({
+    id: state.track.seq++, ts: new Date().toISOString().slice(0,16).replace('T',' '),
+    rule: ruleText, cutoff: d.split? d.split.date_cutoff : null,
+    verdict: d.split? d.verdict : null,
+    edge: d.split ? (d.holdout||{}).edge_bsp_fair : d.edge_bsp_fair,
+    quals: d.split ? (d.holdout||{}).qualifiers : d.qualifier_count,
+  });
+  state.trackSub='log'; setMode('track');
+}
+function renderTrackHTML(){
+  const sub = state.trackSub;
+  const nav = `<div class="subnav">
+    <button class="sb ${sub==='log'?'on':''}" onclick="setSub('log')">Backtest log</button>
+    <button class="sb ${sub==='fwd'?'on':''}" onclick="setSub('fwd')">Forward bets</button>
+    <span style="flex:1"></span>
+    <button class="sb" onclick="exportTrack()">⭳ Export</button>
+    <label class="sb" style="cursor:pointer">⭱ Import<input type="file" accept="application/json" class="hide" onchange="importTrack(this)"></label>
+  </div>`;
+  return `<div class="card">${nav}${sub==='log'?trackLogHTML():trackFwdHTML()}
+    <div class="faint small" style="margin-top:14px">Persistence is file-based — state lives in the JSON you Export (no browser storage).</div>
+  </div>`;
+}
+function setSub(s){ state.trackSub=s; renderMode(); }
+function trackLogHTML(){
+  const bs=state.track.backtests;
+  let rows = bs.length ? bs.map(b=>`<tr>
+      <td>${verdictChip(b.verdict)}</td>
+      <td>${esc(b.rule)}</td>
+      <td class="muted small">${b.cutoff?esc(b.cutoff):'—'}</td>
+      <td class="num ${signCls(b.edge)}">${fmtPct(b.edge)}</td>
+      <td class="num">${nfmt(b.quals)}</td>
+      <td class="muted small">${esc(b.ts)}</td>
+      <td><button class="link" onclick="delLog(${b.id})">remove</button></td></tr>`).join('')
+    : `<tr class="empty"><td colspan="7">No logged backtests — promote one from a backtest result.</td></tr>`;
+  return `<p class="eyebrow">Backtest log</p>
+    <table><tr><th>verdict</th><th>rule</th><th>cutoff</th><th class="num">edge vs BSP</th><th class="num">qualifiers</th><th>logged</th><th></th></tr>${rows}</table>`;
+}
+function delLog(id){ state.track.backtests=state.track.backtests.filter(b=>b.id!==id); renderMode(); }
+
+function betCLV(b){ if(b.bsp==null||!(b.bsp>1)||!(b.struck>1)) return null; return b.side==='lay'?clvLay(b.struck,b.bsp):clvBack(b.struck,b.bsp); }
+function betPnl(b){ if(b.result==='void'||b.result==='pending') return null; const won=b.result==='won'; return b.side==='lay'?layPnl(b.struck,won,b.stake):backPnl(b.struck,won,b.stake); }
+function trackFwdHTML(){
+  const bets=state.track.forwardBets;
+  const priced=bets.filter(b=>betCLV(b)!=null), settled=bets.filter(b=>betPnl(b)!=null);
+  const meanCLV=priced.length?priced.reduce((s,b)=>s+betCLV(b),0)/priced.length:null;
+  const beat=priced.length?priced.filter(b=>betCLV(b)>0).length/priced.length:null;
+  const staked=settled.reduce((s,b)=>s+b.stake,0), pnl=settled.reduce((s,b)=>s+betPnl(b),0);
+  const roi=staked>0?pnl/staked:null, pending=bets.filter(b=>b.result==='pending').length;
+  const stat=(v,l,c)=>`<div class="stat"><div class="v ${c||''}">${v}</div><div class="l">${l}</div></div>`;
+  const stats=`<div class="stats">
+    ${stat(bets.length, `bets · ${settled.length} settled · ${pending} pending`)}
+    ${stat(meanCLV!=null?fmtPct(meanCLV):'—','mean CLV',signCls(meanCLV))}
+    ${stat(beat!=null?(beat*100).toFixed(0)+'%':'—','beat the close')}
+    ${stat(money(pnl),'P&L net 5%',signCls(pnl))}
+    ${stat(roi!=null?fmtPct(roi):'—','ROI',signCls(roi))}</div>`;
+  const form=`<div class="card tight" style="margin:14px 0">
+    <div class="field-row">
+      <div><label>Date</label><input type="date" id="f-date"></div>
+      <div><label>Selection</label><input type="text" id="f-sel" placeholder="horse — race"></div>
+      <div><label>Side</label><select id="f-side"><option value="back">back</option><option value="lay">lay</option></select></div>
+      <div><label>Struck</label><input type="number" id="f-struck" step="0.01" min="1.01" style="width:90px"></div>
+      <div><label>BSP</label><input type="number" id="f-bsp" step="0.01" min="1.01" style="width:90px" placeholder="—"></div>
+      <div><label>Result</label><select id="f-result"><option value="pending">pending</option><option value="won">horse won</option><option value="lost">horse lost</option><option value="void">void</option></select></div>
+      <div><label>Stake</label><input type="number" id="f-stake" step="0.1" min="0" value="1" style="width:70px"></div>
+      <div><button class="btn sm" onclick="addForwardBet()">Add</button></div>
+    </div><div class="err" id="f-err"></div></div>`;
+  let rows = bets.length ? bets.map(b=>{
+    const c=betCLV(b), p=betPnl(b);
+    const opts=['pending','won','lost','void'].map(o=>`<option value="${o}"${b.result===o?' selected':''}>${o}</option>`).join('');
+    return `<tr>
+      <td class="muted small">${esc(b.date)}</td><td>${esc(b.sel)||'<span class="faint">—</span>'}</td>
+      <td class="side-${b.side}">${b.side}</td><td class="num">${b.struck.toFixed(2)}</td>
+      <td class="num"><input type="number" step="0.01" min="1.01" value="${b.bsp==null?'':b.bsp}" placeholder="—" onchange="updateBet(${b.id},'bsp',this.value)" style="width:74px"></td>
+      <td><select onchange="updateBet(${b.id},'result',this.value)">${opts}</select></td>
+      <td class="num ${signCls(c)}">${c==null?'<span class="faint">pending</span>':fmtPct(c)}</td>
+      <td class="num ${signCls(p)}">${p==null?'<span class="faint">—</span>':money(p)}</td>
+      <td><button class="link" onclick="removeFwd(${b.id})">×</button></td></tr>`;
+  }).join('') : `<tr class="empty"><td colspan="9">No forward bets yet.</td></tr>`;
+  return `<p class="eyebrow">Forward bets · CLV-first</p>${stats}${form}
+    <table><tr><th>date</th><th>selection</th><th>side</th><th class="num">struck</th><th class="num">BSP</th><th>result</th><th class="num">CLV</th><th class="num">P&L</th><th></th></tr>${rows}</table>
+    <div class="faint small" style="margin-top:8px">back CLV = struck/bsp−1 · lay CLV = bsp/struck−1 (reciprocal, sign-correct) · P&L net 5% per clv.py.</div>`;
+}
+function addForwardBet(){
+  const err=document.getElementById('f-err'); err.textContent='';
+  const struck=parseFloat(document.getElementById('f-struck').value);
+  if(!(struck>1)){ err.textContent='Struck must be > 1.0'; return; }
+  const stake=parseFloat(document.getElementById('f-stake').value);
+  if(!(stake>=0)){ err.textContent='Stake must be ≥ 0'; return; }
+  const bspRaw=document.getElementById('f-bsp').value.trim();
+  state.track.forwardBets.unshift({
+    id:state.track.seq++, date:document.getElementById('f-date').value||new Date().toISOString().slice(0,10),
+    sel:document.getElementById('f-sel').value.trim(), side:document.getElementById('f-side').value,
+    struck, bsp: bspRaw===''?null:parseFloat(bspRaw),
+    result:document.getElementById('f-result').value, stake });
+  renderMode();
+}
+function updateBet(id,field,raw){ const b=state.track.forwardBets.find(x=>x.id===id); if(!b) return;
+  if(field==='bsp') b.bsp = raw.trim()===''?null:parseFloat(raw); else b.result=raw; renderMode(); }
+function removeFwd(id){ state.track.forwardBets=state.track.forwardBets.filter(b=>b.id!==id); renderMode(); }
+
+/* ---- persistence (file only) ---- */
+function exportTrack(){
+  const blob=new Blob([JSON.stringify(state.track,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download='edge_tracker_state.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+function importTrack(input){
+  const f=input.files&&input.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ const s=JSON.parse(r.result);
+    state.track.backtests=Array.isArray(s.backtests)?s.backtests:[];
+    state.track.forwardBets=Array.isArray(s.forwardBets)?s.forwardBets:[];
+    const mx=Math.max(0,...state.track.backtests.map(b=>b.id||0),...state.track.forwardBets.map(b=>b.id||0));
+    state.track.seq=Math.max(s.seq||0,mx+1); renderMode();
+  }catch(e){ alert('Import failed: '+e.message); } };
+  r.readAsText(f); input.value='';
+}
+
+/* =========================== init =========================== */
+function init(){ const d=document.getElementById('f-date'); if(d) d.value=new Date().toISOString().slice(0,10); renderNav(); renderMode(); }
+init();
+</script>
+</body>
+</html>

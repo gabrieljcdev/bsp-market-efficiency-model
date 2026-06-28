@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Racing Rule Builder</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#171d26; --panel2:#1d2530; --line:#2a3340;
+    --ink:#e6edf3; --muted:#8b97a7; --accent:#4ea1ff; --accent2:#2f6fb0;
+    --good:#3fb950; --warn:#d29922; --bad:#f85149; --derived:#a371f7;
+    --chip:#222c38;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{padding:18px 24px;border-bottom:1px solid var(--line);background:var(--panel)}
+  header h1{margin:0;font-size:18px}
+  header .src{color:var(--muted);font-size:12px;margin-top:4px}
+  header .src code{background:var(--chip);padding:1px 6px;border-radius:4px}
+  .wrap{display:grid;grid-template-columns:1fr 380px;gap:20px;padding:20px 24px;align-items:start}
+  @media(max-width:980px){.wrap{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+  /* stepper */
+  .steps{display:flex;gap:8px;margin-bottom:16px}
+  .steps .s{flex:1;text-align:center;padding:8px 6px;border-radius:8px;background:var(--panel2);
+    border:1px solid var(--line);color:var(--muted);font-size:12px;font-weight:600}
+  .steps .s.active{color:var(--ink);border-color:var(--accent);background:#13314f}
+  .steps .s.done{color:var(--good);border-color:#1f5130}
+  /* groups */
+  .grp{margin-bottom:18px}
+  .grp h3{margin:0 0 4px;font-size:13px;display:flex;align-items:center;gap:8px}
+  .grp .sub{color:var(--muted);font-size:11px;margin:0 0 10px}
+  .badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:.3px}
+  .badge.pre{background:#13314f;color:var(--accent)}
+  .badge.der{background:#2a1f47;color:var(--derived)}
+  .badge.post{background:#3a1f22;color:var(--bad)}
+  .badge.coerce{background:#3a3016;color:var(--warn)}
+  .badge.t{background:var(--chip);color:var(--muted)}
+  .fields{display:flex;flex-wrap:wrap;gap:8px}
+  .f{border:1px solid var(--line);background:var(--panel2);color:var(--ink);
+    padding:7px 11px;border-radius:8px;cursor:pointer;font-size:12.5px;display:flex;
+    align-items:center;gap:7px;transition:.12s}
+  .f:hover{border-color:var(--accent);background:#13314f}
+  .f .ty{font-size:10px;color:var(--muted)}
+  .f.der:hover{border-color:var(--derived);background:#221a3a}
+  .f.disabled{cursor:not-allowed;opacity:.55;background:#15191f}
+  .f.disabled:hover{border-color:var(--line);background:#15191f}
+  .f.disabled .warn{color:var(--bad);font-size:12px}
+  .search{width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--ink);margin-bottom:14px;font-size:13px}
+  .search:focus{outline:none;border-color:var(--accent)}
+  /* condition step */
+  .condhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .condhead .name{font-size:16px;font-weight:700}
+  .src-cols{color:var(--muted);font-size:11.5px;margin-bottom:12px}
+  .leak{border:1px solid #5a3a14;background:#241a0c;color:#f0c674;
+    padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:14px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  select,input[type=text],input[type=number]{padding:8px 10px;border-radius:7px;
+    border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-size:13px}
+  select:focus,input:focus{outline:none;border-color:var(--accent)}
+  label.fld{font-size:11px;color:var(--muted);display:block;margin-bottom:3px}
+  .btn{padding:9px 16px;border-radius:8px;border:1px solid var(--accent2);
+    background:var(--accent2);color:#fff;cursor:pointer;font-size:13px;font-weight:600}
+  .btn:hover{background:var(--accent)}
+  .btn.ghost{background:transparent;border-color:var(--line);color:var(--muted)}
+  .btn.ghost:hover{border-color:var(--accent);color:var(--ink)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .actions{display:flex;gap:10px;margin-top:8px}
+  .hint{color:var(--muted);font-size:11px;margin-top:4px}
+  .err{color:var(--bad);font-size:12px;margin-top:8px;min-height:16px}
+  /* rules panel */
+  .rules .empty{color:var(--muted);font-size:12px;font-style:italic}
+  .rule{border:1px solid var(--line);background:var(--panel2);border-radius:8px;
+    padding:9px 11px;margin-bottom:8px;display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+  .rule code{color:var(--ink);font-size:12.5px;word-break:break-word}
+  .rule .x{cursor:pointer;color:var(--muted);font-weight:700;border:none;background:none;font-size:16px}
+  .rule .x:hover{color:var(--bad)}
+  .rule .ln{display:block;color:var(--derived);font-size:10.5px;margin-top:4px}
+  pre.json{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;
+    font-size:11.5px;max-height:240px;overflow:auto;color:#bcd}
+  .roadmap .ri{display:flex;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:12px}
+  .roadmap .ri:last-child{border:none}
+  .roadmap .ri .nm{font-weight:600;min-width:130px}
+  .roadmap .ri .bl{color:var(--muted)}
+  .roadmap .ri .cost{margin-left:auto;font-size:10px;color:var(--warn);white-space:nowrap}
+  .seg-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:0 0 10px}
+  /* group tree */
+  .gnode{border:1px solid var(--line);border-left:3px solid var(--accent2);border-radius:8px;
+    padding:8px;margin:8px 0;background:#141a23}
+  .gnode.active{border-left-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+  .ghead{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+  .comb{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .comb button{border:none;background:var(--panel2);color:var(--muted);padding:4px 10px;
+    cursor:pointer;font-size:11px;font-weight:700}
+  .comb button.on{background:var(--accent2);color:#fff}
+  .ghead .cnt{font-size:10px;color:var(--muted)}
+  .ghead .activetag{font-size:9px;font-weight:700;color:var(--accent);
+    border:1px solid var(--accent);border-radius:20px;padding:1px 7px}
+  .gbtn{border:1px dashed var(--line);background:transparent;color:var(--muted);
+    border-radius:6px;padding:3px 9px;cursor:pointer;font-size:11px}
+  .gbtn:hover{border-color:var(--accent);color:var(--ink);border-style:solid}
+  .gbtn.rm{margin-left:auto;border-style:solid}
+  .gbtn.rm:hover{border-color:var(--bad);color:var(--bad)}
+  .gchildren{padding-left:6px}
+  .gchildren .empty-g{color:var(--muted);font-size:11px;font-style:italic;padding:4px 2px}
+  .stub-note{color:var(--muted);font-size:11px;margin-top:6px;line-height:1.4}
+  /* results panel */
+  .res-ok,.res-warn{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:10px 0;font-size:12.5px}
+  .res-warn{border-color:#5a3a14;background:#241a0c;color:#f0c674}
+  .res-warn ul{margin:6px 0 0;padding-left:18px}
+  .res-ok{background:#101822}
+  .res-ok .big{font-size:22px;font-weight:700;color:var(--accent)}
+  .res-ok .big span{font-size:12px;color:var(--muted);font-weight:400}
+  .res-tbl{width:100%;border-collapse:collapse;margin-top:8px}
+  .res-tbl td{padding:3px 6px;border-bottom:1px solid var(--line)}
+  .res-tbl td:first-child{color:var(--muted)}
+  .res-tbl td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+  .res-muted{color:var(--muted);font-size:12px;margin:8px 0}
+  /* scan-today (Stage 3) race blocks */
+  .scan-race{border:1px solid var(--line);border-radius:8px;margin:8px 0;padding:8px 10px;background:#101822}
+  .scan-rhdr{font-size:12.5px;margin-bottom:6px}
+  .scan-tbl{width:100%;border-collapse:collapse;font-size:12px}
+  .scan-tbl th{text-align:left;color:var(--muted);font-weight:600;font-size:10.5px;
+    border-bottom:1px solid var(--line);padding:3px 6px;white-space:nowrap}
+  .scan-tbl td{padding:4px 6px;border-bottom:1px solid var(--line)}
+  .scan-tbl td.num,.scan-tbl th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .scan-tbl tr:last-child td{border-bottom:none}
+  /* split control */
+  .split-ctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 4px;
+    padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);font-size:12px}
+  .split-ctl label{display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600}
+  .split-ctl input[type=date]{padding:5px 8px;border-radius:6px;border:1px solid var(--line);
+    background:var(--bg);color:var(--ink);font-size:12px}
+  .split-ctl input[type=date]:disabled{opacity:.4}
+  /* split results table */
+  .split-head{font-size:12px;margin-bottom:8px}
+  .split-tbl tr.hdr td{color:var(--muted);font-size:11px;border-bottom:1px solid var(--line);padding-bottom:4px}
+  .split-tbl tr.sub td{color:var(--muted);font-size:10.5px;font-style:italic;padding-top:7px;border:none}
+  .split-tbl td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .split-tbl tr.headline td{font-weight:700;background:#13213a}
+  .split-tbl td.pos{color:var(--good)} .split-tbl td.neg{color:var(--bad)}
+  /* verdict badges -- shared system convention (mirror in edge_tracker.html) */
+  .verdict-box{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .verdict-reason{color:var(--muted);font-size:11.5px;flex:1;min-width:180px}
+  .verdict{font-weight:800;font-size:12px;letter-spacing:.6px;padding:4px 13px;border-radius:20px}
+  .v-ruledin  {background:#0f3a1e;color:#3fb950;border:1px solid #1f5130}
+  .v-priced   {background:#3a1f22;color:#f85149;border:1px solid #5a2a2e}
+  .v-toholdout{background:#3a3016;color:#d29922;border:1px solid #5a4a1e}
+  .v-thin     {background:#222c38;color:#8b97a7;border:1px solid var(--line)}
+  .hide{display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>Racing Rule Builder</h1>
+  <div class="src">Source <code id="src"></code> · <span id="colcount"></span> columns ·
+    leakage-safe by construction (post-race columns are disabled; derived features are prior-run only)</div>
+</header>
+
+<div class="wrap">
+  <!-- LEFT: staged wizard -->
+  <div class="card">
+    <div class="steps">
+      <div class="s" data-step="0">0 · Start</div>
+      <div class="s" data-step="1">1 · Choose field</div>
+      <div class="s" data-step="2">2 · Set condition</div>
+    </div>
+
+    <!-- STEP 0 -->
+    <section id="step0">
+      <p style="margin-top:0;color:var(--muted)">
+        Build leakage-safe selection rules over the joined GB dataset. Pre-race and
+        prior-run derived fields are selectable; post-race result/market columns are shown
+        but disabled.</p>
+      <div class="row" style="gap:18px">
+        <div><div style="font-size:22px;font-weight:700" id="n-pre"></div><div class="hint">pre-race selectable</div></div>
+        <div><div style="font-size:22px;font-weight:700;color:var(--derived)" id="n-der"></div><div class="hint">derived (prior-run)</div></div>
+        <div><div style="font-size:22px;font-weight:700;color:var(--bad)" id="n-post"></div><div class="hint">post-race disabled</div></div>
+      </div>
+      <div class="actions"><button class="btn" onclick="newRule()">+ New rule</button></div>
+    </section>
+
+    <!-- STEP 1 -->
+    <section id="step1" class="hide">
+      <input class="search" id="search" placeholder="Filter fields…" oninput="renderFields()">
+      <div id="fieldgroups"></div>
+      <div class="actions"><button class="btn ghost" onclick="go(0)">← Back</button></div>
+    </section>
+
+    <!-- STEP 2 -->
+    <section id="step2" class="hide">
+      <div class="condhead">
+        <span class="name" id="c-name"></span>
+        <span id="c-badges"></span>
+      </div>
+      <div class="src-cols" id="c-src"></div>
+      <div class="leak hide" id="c-leak"></div>
+      <div class="row" id="c-controls"></div>
+      <div class="err" id="c-err"></div>
+      <div class="actions">
+        <button class="btn" onclick="addRule()">Add rule</button>
+        <button class="btn ghost" onclick="go(1)">← Pick another field</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- RIGHT: rules + roadmap -->
+  <div>
+    <div class="card rules" style="margin-bottom:18px">
+      <p class="seg-title">Selection rules <span id="rulecount" class="badge t"></span></p>
+      <div class="hint" style="margin-bottom:6px">
+        Combine with <b>All</b> (AND) / <b>Any</b> (OR). New rules land in the
+        <span style="color:var(--accent)">active</span> group; nest with “+ group”.</div>
+      <div id="tree"></div>
+      <div class="split-ctl">
+        <label><input type="checkbox" id="splitOn" onchange="onSplitToggle()"> Discovery / holdout split</label>
+        <input type="date" id="splitCutoff" value="2024-01-01" disabled onchange="renderTree()">
+        <span class="hint">discovery ≤ cutoff &lt; holdout · verdict decided on holdout @BSP</span>
+      </div>
+      <div style="margin:12px 0 6px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn ghost" id="copybtn" onclick="copyJSON()">Copy JSON</button>
+        <button class="btn ghost" onclick="clearAll()">Clear all</button>
+        <button class="btn ghost" id="previewbtn" onclick="runStrategy('count')">Preview qualifier count</button>
+        <button class="btn" id="runbtn" onclick="runStrategy('backtest')">Run backtest</button>
+        <button class="btn ghost" id="scanbtn" onclick="scanToday()" title="Stage 3: flag qualifiers in today's racecards">Scan today</button>
+      </div>
+      <div class="stub-note">Computed by Python (<code>run_strategy.py</code>) — the browser never
+        parses the 726k-row CSV. Start the bridge first:
+        <code>cd racing_rulebuilder &amp;&amp; python run_strategy.py --serve</code>
+        (listens on <code>127.0.0.1:8765</code>; struck=<code>wap</code>, benchmark=<code>bsp</code>, 5% commission).</div>
+      <div id="results"></div>
+      <pre class="json" id="jsonout"></pre>
+    </div>
+
+    <div class="card roadmap">
+      <p class="seg-title">Pending acquisition — roadmap</p>
+      <div class="hint" style="margin-bottom:8px">Informational only — not selectable. Signals more data coming.</div>
+      <div id="roadmap"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===========================================================================
+   EMBEDDED MANIFEST — mirrors field_manifest.json (kept in sync by hand).
+   Inlined so index.html opens directly via file:// without a fetch/CORS step.
+   =========================================================================== */
+const MANIFEST = {
+  source_csv: "data/joined/joined_gb_2018_2026.csv",
+  n_columns: 52,
+  operators: {
+    numeric: ["<","≤","=","≥",">","range"],
+    categorical: ["is","in"],
+    flag: ["true","false"]
+  },
+  derived_leakage_note: "prior-run only — must join to history STRICTLY before current race date; no same-race or future data.",
+  fields: [
+    {name:"date",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"region",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"course",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"course_detail",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
+    {name:"off",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"race_name",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"type",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"class",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"pattern",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
+    {name:"rating_band",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
+    {name:"age_band",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"sex_rest",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
+    {name:"dist",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"dist_f",stage:"pre_race",type:"numeric",dtype:"object",selectable:true,coerce:true,note:"object-typed (non-numeric tokens); coerce to numeric."},
+    {name:"dist_m",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true},
+    {name:"going",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"surface",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"ran",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true},
+    {name:"num",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true},
+    {name:"pos",stage:"post_race",type:"numeric",dtype:"int64",selectable:false,note:"Finishing position — the outcome itself."},
+    {name:"draw",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
+    {name:"ovr_btn",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Beaten distance (overall) — result-derived."},
+    {name:"btn",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Beaten distance — result-derived."},
+    {name:"horse",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"age",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true},
+    {name:"sex",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"lbs",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true},
+    {name:"hg",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"time",stage:"post_race",type:"categorical",dtype:"object",selectable:false,note:"Race time — result-derived."},
+    {name:"secs",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Race time in seconds — result-derived."},
+    {name:"dec",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Industry SP (decimal) — settled at-the-off price; same class as bsp/wap."},
+    {name:"jockey",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"trainer",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"prize",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
+    {name:"or",stage:"pre_race",type:"numeric",dtype:"object",selectable:true,coerce:true,note:"Official rating; object-typed (non-numeric tokens); coerce to numeric. Leakage-safe pre-race rating."},
+    {name:"rpr",stage:"post_race",type:"numeric",dtype:"int64",selectable:false,note:"Racing Post Rating — assigned post-race; leakage."},
+    {name:"sire",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"dam",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"damsire",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"owner",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"comment",stage:"post_race",type:"categorical",dtype:"object",selectable:false,note:"In-running closeup describing how the horse actually ran — reads the result (despite run-style-proxy use in Stage-1)."},
+    {name:"bsp",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Betfair Starting Price — settled price."},
+    {name:"pre_min",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Pre-off price aggregate — settled market data."},
+    {name:"pre_max",stage:"post_race",type:"numeric",dtype:"int64",selectable:false,note:"Pre-off price aggregate — settled market data."},
+    {name:"ip_min",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"In-play price — occurs during the race."},
+    {name:"ip_max",stage:"post_race",type:"numeric",dtype:"int64",selectable:false,note:"In-play price — occurs during the race."},
+    {name:"pre_vol",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Pre-off matched volume — settled market data."},
+    {name:"ip_vol",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"In-play matched volume — occurs during the race."},
+    {name:"wap",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Weighted average price — settled market data."},
+    {name:"morning_wap",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Morning WAP — market-derived; classified post_race for leakage-safety."},
+    {name:"morning_vol",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Morning matched volume — market-derived; classified post_race for leakage-safety."},
+    {name:"wap_valid",stage:"post_race",type:"flag",dtype:"int64",selectable:false,note:"Validity flag on post-race WAP pricing."}
+  ],
+  derived_features: [
+    {name:"career_wins",type:"numeric",selectable:true,stage:"derived",source_columns:["horse","pos"],description:"Count of the horse's prior runs finishing pos==1 (touches pos)."},
+    {name:"career_runs",type:"numeric",selectable:true,stage:"derived",source_columns:["horse"],description:"Count of the horse's prior runs in history."},
+    {name:"won_course_flag",type:"flag",selectable:true,stage:"derived",source_columns:["course","horse","pos"],description:"Horse has previously won at this course (pos==1)."},
+    {name:"won_dist_flag",type:"flag",selectable:true,stage:"derived",source_columns:["dist_f","horse","pos"],description:"Horse has previously won at this distance (pos==1)."},
+    {name:"won_cd_flag",type:"flag",selectable:true,stage:"derived",source_columns:["course","dist_f","horse","pos"],description:"Horse has previously won at this course-and-distance (pos==1)."},
+    {name:"class_change",type:"categorical",selectable:true,stage:"derived",source_columns:["class"],categories:["up","same","down"],description:"Class move vs the horse's previous run."},
+    {name:"or_trajectory",type:"numeric",selectable:true,stage:"derived",source_columns:["or"],description:"Official-rating trend vs the prior 3 runs (delta/slope)."},
+    {name:"hcap_transition",type:"categorical",selectable:true,stage:"derived",source_columns:["type","rating_band"],description:"Handicap transition vs prior (e.g. non-hcap->hcap, band shift)."},
+    {name:"going_suit",type:"numeric",selectable:true,stage:"derived",source_columns:["going","pos"],description:"Horse's prior win/place rate on today's going."},
+    {name:"sire_going_profile",type:"numeric",selectable:true,stage:"derived",source_columns:["sire","going","pos"],description:"Sire progeny win/place rate on today's going (prior runs)."},
+    {name:"sire_dist_profile",type:"numeric",selectable:true,stage:"derived",source_columns:["sire","dist_f","pos"],description:"Sire progeny win/place rate at today's distance (prior runs)."},
+    {name:"first_time_hg",type:"flag",selectable:true,stage:"derived",source_columns:["hg"],description:"Headgear applied for the first time vs the horse's history."},
+    {name:"run_style_proxy",type:"categorical",selectable:true,stage:"derived",source_columns:["comment"],categories:["led","prominent","midfield","held_up"],description:"Run-style parsed from PRIOR-run comments only."}
+  ],
+  pending_acquisition: [
+    {name:"weather",blocker:"Open-Meteo join not built — needs a ~60-course lat/long table.",cost:"easy / free"},
+    {name:"going_vs_forecast",blocker:"Derived once weather is joined.",cost:"depends: weather"},
+    {name:"sectional_pace",blocker:"TPD paid licence required — the genuine edge layer.",cost:"paid licence"},
+    {name:"forecast_tissue_price",blocker:"No feed yet — blocks forecast-vs-market rules.",cost:""},
+    {name:"book_impact",blocker:"Only crudely proxyable — no clean pre-race source.",cost:""},
+    {name:"distance_travelled",blocker:"Needs trainer-yard locations — no such field exists.",cost:""}
+  ]
+};
+
+/* ---------- state ---------- */
+let step = 0;
+let selected = null;          // currently chosen field def
+let nodeSeq = 1;              // stable id source (no Math.random/Date needed)
+const ROOT = { id:0, kind:'group', combinator:'all', children:[] };
+let activeGroupId = 0;        // where newly-added rules land
+
+function findGroup(id, node=ROOT){
+  if(node.id===id) return node;
+  for(const c of node.children) if(c.kind==='group'){ const r=findGroup(id,c); if(r) return r; }
+  return null;
+}
+function findParent(id, node=ROOT){
+  for(const c of node.children){
+    if(c.id===id) return node;
+    if(c.kind==='group'){ const r=findParent(id,c); if(r) return r; }
+  }
+  return null;
+}
+function countRules(node=ROOT){
+  return node.children.reduce((n,c)=> n + (c.kind==='rule'?1:countRules(c)), 0);
+}
+
+/* ---------- step navigation ---------- */
+function go(n){
+  step = n;
+  document.querySelectorAll('section[id^=step]').forEach(s=>s.classList.add('hide'));
+  document.getElementById('step'+n).classList.remove('hide');
+  document.querySelectorAll('.steps .s').forEach(el=>{
+    const d = +el.dataset.step;
+    el.classList.toggle('active', d===n);
+    el.classList.toggle('done', d<n);
+  });
+  if(n===1) renderFields();
+}
+
+/* ---------- step 1: field picker ---------- */
+function fieldChip(f, group){
+  const div = document.createElement('div');
+  const disabled = !f.selectable;
+  div.className = 'f' + (group==='derived'?' der':'') + (disabled?' disabled':'');
+  let inner = `<span>${f.name}</span><span class="ty">${f.type}</span>`;
+  if(f.coerce) inner += `<span class="badge coerce" title="${f.note||''}">coerce→num</span>`;
+  if(disabled) inner += `<span class="warn" title="${f.note||'post-race / leakage'}">⚠ leakage</span>`;
+  div.innerHTML = inner;
+  if(!disabled) div.onclick = ()=>chooseField(f, group);
+  else div.title = (f.note||'') + ' (post-race — not selectable)';
+  return div;
+}
+
+function renderFields(){
+  const q = (document.getElementById('search').value||'').toLowerCase();
+  const host = document.getElementById('fieldgroups');
+  host.innerHTML = '';
+  const match = f => f.name.toLowerCase().includes(q);
+
+  const pre = MANIFEST.fields.filter(f=>f.stage==='pre_race' && match(f));
+  const der = MANIFEST.derived_features.filter(match);
+  const post = MANIFEST.fields.filter(f=>f.stage==='post_race' && match(f));
+
+  host.appendChild(group('Pre-race', 'pre', 'Known before the off — leakage-safe.', pre, 'pre'));
+  host.appendChild(group('Derived (prior-run)', 'der', MANIFEST.derived_leakage_note, der, 'derived'));
+  host.appendChild(group('Post-race — disabled', 'post', 'Result / settled-market columns. Shown for reference; cannot be selected.', post, 'post'));
+}
+
+function group(title, badgeCls, sub, list, groupKey){
+  const g = document.createElement('div'); g.className='grp';
+  const h = document.createElement('h3');
+  h.innerHTML = `${title} <span class="badge ${badgeCls}">${list.length}</span>`;
+  g.appendChild(h);
+  const s = document.createElement('p'); s.className='sub'; s.textContent = sub; g.appendChild(s);
+  const fl = document.createElement('div'); fl.className='fields';
+  if(!list.length){ const e=document.createElement('span'); e.className='hint'; e.textContent='— none match —'; fl.appendChild(e); }
+  list.forEach(f=>fl.appendChild(fieldChip(f, groupKey)));
+  g.appendChild(fl);
+  return g;
+}
+
+/* ---------- step 2: condition builder ---------- */
+function chooseField(f, group){
+  selected = Object.assign({}, f, {group});
+  document.getElementById('c-name').textContent = f.name;
+
+  // badges
+  const b = [];
+  const stageBadge = group==='derived' ? 'der' : (f.stage==='pre_race'?'pre':'post');
+  b.push(`<span class="badge ${stageBadge}">${group==='derived'?'derived':f.stage}</span>`);
+  b.push(`<span class="badge t">${f.type}</span>`);
+  if(f.dtype) b.push(`<span class="badge t">${f.dtype}</span>`);
+  if(f.coerce) b.push(`<span class="badge coerce">coerce→num</span>`);
+  document.getElementById('c-badges').innerHTML = b.join(' ');
+
+  document.getElementById('c-src').textContent =
+    f.source_columns ? 'sources: ' + f.source_columns.join(' + ') : '';
+
+  // leakage note for derived
+  const leak = document.getElementById('c-leak');
+  if(group==='derived'){
+    leak.classList.remove('hide');
+    leak.innerHTML = '⚠ <b>Prior-run only.</b> ' + MANIFEST.derived_leakage_note +
+      (f.description? '<br><span style="color:var(--muted)">'+f.description+'</span>':'');
+  } else { leak.classList.add('hide'); }
+
+  buildControls(f);
+  document.getElementById('c-err').textContent='';
+  go(2);
+}
+
+function buildControls(f){
+  const host = document.getElementById('c-controls');
+  const ops = MANIFEST.operators[f.type];
+  let html = `<div><label class="fld">Operator</label>
+    <select id="op" onchange="onOpChange()">${ops.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
+  html += `<div id="valwrap"></div>`;
+  host.innerHTML = html;
+  onOpChange();
+}
+
+function onOpChange(){
+  const f = selected;
+  const op = document.getElementById('op').value;
+  const w = document.getElementById('valwrap');
+  if(f.type==='flag'){ w.innerHTML=''; return; }          // op IS the value (true/false)
+  if(f.type==='categorical'){
+    const ph = op==='in' ? 'value1, value2, value3…' : 'value';
+    const list = f.categories ? `<datalist id="cats">${f.categories.map(c=>`<option value="${c}">`).join('')}</datalist>` : '';
+    w.innerHTML = `<div><label class="fld">${op==='in'?'Values (comma-separated)':'Value'}</label>
+      <input type="text" id="v1" list="${f.categories?'cats':''}" placeholder="${ph}" style="min-width:220px">${list}</div>`;
+    return;
+  }
+  // numeric
+  if(op==='range'){
+    w.innerHTML = `<div><label class="fld">Min (≥)</label><input type="number" id="v1" step="any" style="width:120px"></div>
+                   <div><label class="fld">Max (≤)</label><input type="number" id="v2" step="any" style="width:120px"></div>`;
+  } else {
+    w.innerHTML = `<div><label class="fld">Value</label><input type="number" id="v1" step="any" style="width:140px"></div>`;
+  }
+}
+
+function addRule(){
+  const f = selected, op = document.getElementById('op').value;
+  const err = document.getElementById('c-err'); err.textContent='';
+  let value;
+
+  if(f.type==='flag'){
+    value = (op==='true');
+  } else if(f.type==='categorical'){
+    const raw = (document.getElementById('v1').value||'').trim();
+    if(!raw){ err.textContent='Enter a value.'; return; }
+    value = op==='in' ? raw.split(',').map(s=>s.trim()).filter(Boolean) : raw;
+    if(op==='in' && value.length<1){ err.textContent='Enter at least one value.'; return; }
+  } else { // numeric
+    if(op==='range'){
+      const a=document.getElementById('v1').value, b=document.getElementById('v2').value;
+      if(a===''||b===''){ err.textContent='Enter both min and max.'; return; }
+      const lo=+a, hi=+b;
+      if(lo>hi){ err.textContent='Min must be ≤ Max.'; return; }
+      value=[lo,hi];
+    } else {
+      const a=document.getElementById('v1').value;
+      if(a===''){ err.textContent='Enter a value.'; return; }
+      value=+a;
+    }
+  }
+
+  const rule = {
+    id:nodeSeq++, kind:'rule',
+    field:f.name, group:f.group, type:f.type, dtype:f.dtype||null,
+    op, value,
+    coerce:!!f.coerce,
+    source_columns:f.source_columns||[f.name],
+    leakage_note: f.group==='derived' ? MANIFEST.derived_leakage_note : undefined
+  };
+  (findGroup(activeGroupId) || ROOT).children.push(rule);
+  renderTree();
+  go(1);  // back to field picker for the next rule
+}
+
+/* ---------- rules panel ---------- */
+function ruleExpr(r){
+  const v = r.value;
+  if(r.type==='flag') return `${r.field} is ${v}`;
+  if(r.type==='categorical'){
+    if(r.op==='in') return `${r.field} in [${v.map(x=>'"'+x+'"').join(', ')}]`;
+    return `${r.field} is "${v}"`;
+  }
+  if(r.op==='range') return `${v[0]} ≤ ${r.field} ≤ ${v[1]}`;
+  return `${r.field} ${r.op} ${v}`;
+}
+
+/* --- tree mutations --- */
+function newRule(){ activeGroupId = 0; go(1); }                 // step-0 entry → root
+function addRuleTo(id){ activeGroupId = id; go(1); }
+function setActive(id){ activeGroupId = id; renderTree(); }
+function addGroup(parentId){
+  const p = findGroup(parentId) || ROOT;
+  const ng = { id:nodeSeq++, kind:'group', combinator:'all', children:[] };
+  p.children.push(ng); activeGroupId = ng.id; renderTree();
+}
+function toggleCombinator(id, val){
+  const g = findGroup(id); if(g){ g.combinator = val; renderTree(); }
+}
+function removeNode(id){
+  const parent = findParent(id); if(!parent) return;           // root not removable
+  parent.children = parent.children.filter(c=>c.id!==id);
+  if(!findGroup(activeGroupId)) activeGroupId = 0;             // active group was removed
+  renderTree();
+}
+function clearAll(){ ROOT.children = []; activeGroupId = 0; renderTree(); }
+
+/* --- recursive render --- */
+function renderRuleRow(r){
+  const d=document.createElement('div'); d.className='rule';
+  let ln = r.coerce ? `<span class="ln">↳ coerce ${r.field}→numeric</span>`:'';
+  if(r.group==='derived') ln += `<span class="ln">↳ ${r.leakage_note}</span>`;
+  d.innerHTML = `<div><code>${ruleExpr(r)}</code>${ln}</div>
+    <button class="x" title="remove" onclick="removeNode(${r.id})">×</button>`;
+  return d;
+}
+function renderGroupNode(g){
+  const box=document.createElement('div');
+  box.className='gnode'+(g.id===activeGroupId?' active':'');
+  const isRoot = g.id===0;
+  const head=document.createElement('div'); head.className='ghead';
+  head.innerHTML =
+    `<span class="comb">
+       <button class="${g.combinator==='all'?'on':''}" onclick="toggleCombinator(${g.id},'all')">All · AND</button>
+       <button class="${g.combinator==='any'?'on':''}" onclick="toggleCombinator(${g.id},'any')">Any · OR</button>
+     </span>
+     <span class="cnt">${g.children.length} item${g.children.length===1?'':'s'}</span>
+     ${g.id===activeGroupId?'<span class="activetag">active</span>':''}
+     <button class="gbtn" onclick="addRuleTo(${g.id})">+ rule</button>
+     <button class="gbtn" onclick="addGroup(${g.id})">+ group</button>
+     ${g.id!==activeGroupId?`<button class="gbtn" onclick="setActive(${g.id})">make active</button>`:''}
+     ${isRoot?'':`<button class="gbtn rm" onclick="removeNode(${g.id})">remove group</button>`}`;
+  box.appendChild(head);
+  const kids=document.createElement('div'); kids.className='gchildren';
+  if(!g.children.length){
+    const e=document.createElement('div'); e.className='empty-g';
+    e.textContent='empty — add a rule or nested group'; kids.appendChild(e);
+  } else {
+    g.children.forEach(c=> kids.appendChild(c.kind==='rule'?renderRuleRow(c):renderGroupNode(c)));
+  }
+  box.appendChild(kids);
+  return box;
+}
+
+/* --- serialize to selection_rules block (combinator tree) --- */
+function serializeNode(n){
+  if(n.kind==='rule'){
+    const o={ field:n.field, type:n.type, dtype:n.dtype, op:n.op, value:n.value };
+    if(n.coerce) o.coerce=true;
+    o.source_columns=n.source_columns;
+    if(n.leakage_note) o.leakage_note=n.leakage_note;
+    return o;
+  }
+  return { combinator:n.combinator, children:n.children.map(serializeNode) };
+}
+
+function currentStrategy(extra){
+  const s = { source_csv:MANIFEST.source_csv, selection_rules:serializeNode(ROOT) };
+  const on = document.getElementById('splitOn');
+  if(on && on.checked){
+    s.split = { mode:'date', date_cutoff:(document.getElementById('splitCutoff').value || '2024-01-01') };
+  }
+  return Object.assign(s, extra||{});
+}
+function onSplitToggle(){
+  document.getElementById('splitCutoff').disabled = !document.getElementById('splitOn').checked;
+  renderTree();
+}
+function renderTree(){
+  document.getElementById('rulecount').textContent = countRules();
+  const host=document.getElementById('tree'); host.innerHTML='';
+  host.appendChild(renderGroupNode(ROOT));
+  document.getElementById('jsonout').textContent = JSON.stringify(currentStrategy(),null,2);
+}
+
+/* ---------- bridge: POST strategy.json to run_strategy.py endpoint ---------- */
+const ENDPOINT = 'http://127.0.0.1:8765/run';
+const SCAN_ENDPOINT = 'http://127.0.0.1:8765/scan';
+const fmtPct = x => (x>=0?'+':'') + (x*100).toFixed(2) + '%';
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const resRow = (k,v) => `<tr><td>${k}</td><td>${v}</td></tr>`;
+
+async function runStrategy(mode){
+  const box = document.getElementById('results');
+  if(!countRules()){ box.innerHTML='<div class="res-warn">Add at least one rule first.</div>'; return; }
+  box.innerHTML = `<div class="res-muted">Running ${mode}… (Python over ${ENDPOINT})</div>`;
+  let resp;
+  try{
+    resp = await fetch(ENDPOINT, {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(currentStrategy({mode}))});
+  }catch(e){
+    box.innerHTML = `<div class="res-warn">⚠ <b>Bridge not reachable.</b> Start it:<br>
+      <code>cd racing_rulebuilder &amp;&amp; python run_strategy.py --serve</code></div>`;
+    return;
+  }
+  renderResults(await resp.json());
+}
+
+/* ---- Stage 3: scan TODAY's racecards (Tier 1 -- card columns only, no price) ---- */
+async function scanToday(){
+  const box = document.getElementById('results');
+  if(!countRules()){ box.innerHTML='<div class="res-warn">Add at least one rule first.</div>'; return; }
+  box.innerHTML = `<div class="res-muted">Scanning today's racecards… (Python over ${SCAN_ENDPOINT})</div>`;
+  let resp;
+  try{
+    resp = await fetch(SCAN_ENDPOINT, {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(currentStrategy())});
+  }catch(e){
+    box.innerHTML = `<div class="res-warn">⚠ <b>Bridge not reachable.</b> Start it:<br>
+      <code>cd racing_rulebuilder &amp;&amp; python run_strategy.py --serve</code></div>`;
+    return;
+  }
+  renderScanResults(await resp.json());
+}
+
+function renderScanResults(d){
+  const box = document.getElementById('results');
+  if(d.cards_missing){
+    box.innerHTML = `<div class="res-warn"><b>Today's cards aren't pulled yet</b> (${esc(d.date)}).<br>
+      Pull them first, then scan again:<br>
+      <code>${esc(d.pull_cmd)}</code>
+      <div class="hint" style="margin-top:6px">Looked in: ${(d.searched||[]).map(esc).join(', ')}</div></div>`;
+    return;
+  }
+  if(!d.ok){
+    const fc = d.field_check||{};
+    const extra = (fc.leakage||[]).length
+      ? `<div class="hint">Post-race columns don't exist on a racecard — the race hasn't run.</div>` : '';
+    box.innerHTML = `<div class="res-warn"><b>Scan not run.</b>
+      <ul>${(d.errors||['unknown error']).map(e=>`<li>${esc(e)}</li>`).join('')}</ul>${extra}</div>`;
+    return;
+  }
+  let h = `<div class="res-ok">
+    <div class="big">${d.n_qualifiers}<span> qualifiers today</span></div>
+    <div class="hint">${d.n_races_with_qualifier}/${d.n_races_scanned} races · ${d.n_nonrunners_excluded} non-runner/reserve excluded · ${esc(d.date)} · ${esc(d.source||'')}</div>
+    <div class="hint" style="margin:4px 0 10px">Pre-race only — Tier 1 card-column scan; no price/finishing data exists yet.</div>`;
+  if(!d.races.length){
+    h += `<div class="hint">No qualifiers in today's cards.</div>`;
+  }
+  for(const r of d.races){
+    h += `<div class="scan-race">
+      <div class="scan-rhdr"><b>${esc(r.off)}</b> ${esc(r.course)}
+        <span class="hint">— ${esc(r.race_name||'')} [${esc(r.type||'?')}, ${esc(r.going||'?')}, ${esc(r.dist||'?')}] ·
+        ${r.n_qualifiers}/${r.active_runners} qualify</span></div>
+      <table class="scan-tbl"><tr><th>#</th><th>horse</th><th class="num">or</th><th class="num">age</th>
+        <th>form</th><th>jockey</th><th>trainer</th></tr>`;
+    for(const q of r.qualifiers){
+      h += `<tr><td>${q.no==null?'':q.no}</td><td>${esc(q.horse)}</td>
+        <td class="num">${q.or==null?'—':q.or}</td><td class="num">${q.age==null?'':q.age}</td>
+        <td class="hint">${esc(q.form||'')}</td><td>${esc(q.jockey||'')}</td><td>${esc(q.trainer||'')}</td></tr>`;
+    }
+    h += `</table></div>`;
+  }
+  box.innerHTML = h + '</div>';
+}
+
+/* Shared verdict-state convention (mirror these labels/colours in edge_tracker.html). */
+const VERDICTS = {
+  'ruled-in':   {label:'RULED-IN',   cls:'ruledin'},
+  'priced':     {label:'PRICED',     cls:'priced'},
+  'to-holdout': {label:'TO-HOLDOUT', cls:'toholdout'},
+  'thin':       {label:'THIN',       cls:'thin'},
+};
+const verdictBadge = v => {
+  const m = VERDICTS[v] || {label:(v||'?').toUpperCase(), cls:'thin'};
+  return `<span class="verdict v-${m.cls}">${m.label}</span>`;
+};
+
+function renderResults(d){
+  const box = document.getElementById('results');
+  if(!d.ok){
+    const fc = d.field_check||{};
+    const extra = (fc.unsupported_derived||[]).length
+      ? '<div class="hint">Derived features must be materialised by features/build_*.py before they can be filtered.</div>' : '';
+    box.innerHTML = `<div class="res-warn"><b>Not run.</b>
+      <ul>${(d.errors||['unknown error']).map(e=>`<li>${e}</li>`).join('')}</ul>${extra}</div>`;
+    return;
+  }
+  if(d.split){ box.innerHTML = renderSplitResults(d); return; }
+
+  let h = `<div class="res-ok"><div class="big">${d.qualifier_count.toLocaleString()}
+    <span>qualifiers</span></div>
+    <div class="hint">of ${d.rows_scanned.toLocaleString()} runners scanned · ${d.source_csv}</div>`;
+  const c = d.clv;
+  if(c){
+    const fair = d.bsp_baseline_fair ? d.bsp_baseline_fair.roi_bsp : null;
+    h += `<table class="res-tbl">
+      ${resRow('bets scored', `${c.n_bets.toLocaleString()} (winners ${c.n_winners.toLocaleString()}, skipped ${d.skipped_no_price})`)}
+      ${resRow('ROI @struck (wap)', fmtPct(c.roi_struck))}
+      ${resRow('ROI @BSP (selection)', fmtPct(c.roi_bsp))}
+      ${resRow('fair-null baseline @BSP', fair!=null ? fmtPct(fair) : '—')}
+      ${resRow('<b>edge vs BSP (fair)</b>', d.edge_bsp_fair!=null ? '<b>'+fmtPct(d.edge_bsp_fair)+'</b>' : '—')}
+    </table>
+    <div class="hint">Headline edge is benchmarked to BSP (timing offset stripped) against the same
+      horses' calibrated null (composition stripped). Enable the split for a verdict.</div>`;
+  } else if(d.mode!=='count'){
+    h += `<div class="hint">No priced qualifiers to score.</div>`;
+  }
+  box.innerHTML = h + '</div>';
+}
+
+function renderSplitResults(d){
+  const D=d.discovery, H=d.holdout;
+  const clvv=(b,k)=> b && b.clv ? b.clv[k] : null;
+  const bl  =(b,k)=> (b && b[k]) ? b[k].roi_bsp : null;
+  const numcell=v=> v==null ? '<td class="num">—</td>'
+                            : `<td class="num ${v>=0?'pos':'neg'}">${fmtPct(v)}</td>`;
+  const intcell=v=> `<td class="num">${(v||0).toLocaleString()}</td>`;
+  const prow=(label,dv,hv,cls='')=> `<tr class="${cls}"><td>${label}</td>${numcell(dv)}${numcell(hv)}</tr>`;
+  const irow=(label,dv,hv)=> `<tr><td>${label}</td>${intcell(dv)}${intcell(hv)}</tr>`;
+  const sub =t=> `<tr class="sub"><td colspan="3">${t}</td></tr>`;
+
+  let h = `<div class="res-ok">
+    <div class="split-head">Discovery / holdout split @ <b>${d.split.date_cutoff}</b>
+      &nbsp;<span class="hint">discovery ≤ cutoff &lt; holdout</span></div>
+    <table class="res-tbl split-tbl">
+      <tr class="hdr"><td></td><td class="num">discovery</td><td class="num">holdout</td></tr>
+      ${irow('qualifiers', D.qualifiers, H.qualifiers)}`;
+  if(D.clv || H.clv){
+    h += irow('scored bets', D.scored_bets, H.scored_bets)
+      +  prow('ROI @struck (wap)', clvv(D,'roi_struck'), clvv(H,'roi_struck'))
+      +  prow('ROI @BSP (selection)', clvv(D,'roi_bsp'), clvv(H,'roi_bsp'))
+      +  sub('old full-field baseline (composition-blind)')
+      +  prow('baseline @BSP', bl(D,'bsp_baseline_fullfield'), bl(H,'bsp_baseline_fullfield'))
+      +  prow('edge vs BSP', D.edge_bsp_fullfield, H.edge_bsp_fullfield)
+      +  sub('composition-fair null (same horses @BSP)')
+      +  prow('baseline @BSP', bl(D,'bsp_baseline_fair'), bl(H,'bsp_baseline_fair'))
+      +  prow('edge vs BSP — HEADLINE', D.edge_bsp_fair, H.edge_bsp_fair, 'headline');
+  }
+  h += `</table>
+    <div class="verdict-box">${verdictBadge(d.verdict)}
+      <span class="verdict-reason">${d.verdict_reason||''}</span></div>
+    <div class="hint" style="margin-top:6px">Verdict decided on the <b>holdout</b>, headline = fair edge vs BSP.</div>
+  </div>`;
+  return h;
+}
+
+function copyJSON(){
+  const t=document.getElementById('jsonout').textContent;
+  navigator.clipboard?.writeText(t).then(()=>{
+    const b=document.getElementById('copybtn'); const o=b.textContent;
+    b.textContent='Copied ✓'; setTimeout(()=>b.textContent=o,1200);
+  });
+}
+
+/* ---------- roadmap ---------- */
+function renderRoadmap(){
+  const host=document.getElementById('roadmap');
+  host.innerHTML='';
+  MANIFEST.pending_acquisition.forEach(p=>{
+    const d=document.createElement('div'); d.className='ri';
+    d.innerHTML=`<span class="nm">${p.name}</span><span class="bl">${p.blocker}</span>`+
+      (p.cost?`<span class="cost">${p.cost}</span>`:'');
+    host.appendChild(d);
+  });
+}
+
+/* ---------- init ---------- */
+function init(){
+  document.getElementById('src').textContent = MANIFEST.source_csv;
+  document.getElementById('colcount').textContent = MANIFEST.n_columns;
+  document.getElementById('n-pre').textContent  = MANIFEST.fields.filter(f=>f.stage==='pre_race').length;
+  document.getElementById('n-der').textContent  = MANIFEST.derived_features.length;
+  document.getElementById('n-post').textContent = MANIFEST.fields.filter(f=>f.stage==='post_race').length;
+  renderRoadmap();
+  renderTree();
+  go(0);
+}
+init();
+</script>
+</body>
+</html>
