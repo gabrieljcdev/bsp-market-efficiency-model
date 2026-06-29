@@ -267,6 +267,7 @@ const MANIFEST = {
 
 const ENDPOINT = 'http://127.0.0.1:8765/run';
 const SCAN_ENDPOINT = 'http://127.0.0.1:8765/scan';
+const RACES_ENDPOINT = 'http://127.0.0.1:8765/races';
 const COMMISSION = 0.05;
 
 /* ---- shared verdict convention (four states + neutral no-split) ---- */
@@ -315,6 +316,8 @@ const state = {
   busy: '',
   trackSub: 'log',
   track: { seq:1, backtests:[], forwardBets:[] },
+  races: { date:'', data:null, course:null, busy:false },   // Race view (Task 2) -- browse/display only
+  runnerStub: null,                                          // drill-down target context for Task 3
 };
 
 /* ---- rule tree ---- */
@@ -577,11 +580,17 @@ function flash(id,msg){ const el=document.getElementById(id); if(el) el.innerHTM
 function setBusy(s){ state.busy=s; const el=document.getElementById('build-msg'); if(el && s) el.innerHTML=`<span class="muted">${esc(s)}</span>`; }
 
 /* =========================== mode renders =========================== */
-function setMode(m){ state.mode=m; renderNav(); renderMode(); window.scrollTo(0,0); }
+function setMode(m){
+  state.mode=m; renderNav();
+  if(m==='races' && !state.races.data && !state.races.busy){ loadRaces(); }   // auto-load on first entry
+  else { renderMode(); }
+  window.scrollTo(0,0);
+}
 function renderNav(){
-  const modes=[['build','Build'],['backtest','Backtest'],['scan','Scan'],['track','Track']];
+  const modes=[['build','Build'],['backtest','Backtest'],['scan','Scan'],['races','Races'],['track','Track']];
+  const active = state.mode==='runner' ? 'races' : state.mode;   // runner is a drill destination of Races
   document.getElementById('nav').innerHTML = modes.map(([k,l])=>
-    `<button class="navbtn${state.mode===k?' on':''}" onclick="setMode('${k}')">${l}</button>`).join('');
+    `<button class="navbtn${active===k?' on':''}" onclick="setMode('${k}')">${l}</button>`).join('');
 }
 function renderMode(){
   renderNav();
@@ -589,6 +598,8 @@ function renderMode(){
   if(state.mode==='build') m.innerHTML = renderBuild();
   else if(state.mode==='backtest') m.innerHTML = renderBacktestHTML(state.lastBacktest, state.lastBacktestRule);
   else if(state.mode==='scan') m.innerHTML = renderScanHTML(state.lastScan, state.lastScanRule);
+  else if(state.mode==='races') m.innerHTML = renderRacesHTML();
+  else if(state.mode==='runner') m.innerHTML = renderRunnerStub();
   else m.innerHTML = renderTrackHTML();
 }
 
@@ -793,6 +804,98 @@ function renderScanHTML(d, ruleHTML){
     <div class="actions"><button class="btn ghost sm" onclick="setMode('build')">← Build</button></div></div>`;
 }
 
+/* =========================== race view (Task 2) =========================== */
+/* Browse what is on at a course. DISPLAY ONLY -- no rule filtering happens here
+   (that lives in Build); post-race race-level facts are shown, never selectable. */
+async function loadRaces(){
+  const R=state.races;
+  if(!R.date) R.date=new Date().toISOString().slice(0,10);
+  R.busy=true; renderMode();
+  let d;
+  try{ d=await (await fetch(RACES_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:R.date})})).json(); }
+  catch(e){ R.busy=false; R.data={ok:false,bridge_down:true}; renderMode(); return; }
+  R.busy=false; R.data=d;
+  R.course = (d.courses && d.courses.length) ? d.courses[0].course : null;
+  renderMode();
+}
+function setRaceDate(v){ state.races.date=v; loadRaces(); }
+function selectCourseIdx(i){ const d=state.races.data; if(d&&d.courses[i]){ state.races.course=d.courses[i].course; renderMode(); } }
+
+function renderRacesHTML(){
+  const R=state.races;
+  const dateCtl=`<div class="card tight">
+    <p class="eyebrow">Race view <span class="faint" style="text-transform:none;letter-spacing:0">· browse — not a rule</span></p>
+    <div class="ctl-row">
+      <span class="muted small">date</span>
+      <input type="date" value="${esc(R.date)}" onchange="setRaceDate(this.value)">
+      <span class="faint small">today's cards if pulled, else historical · filtering for strategy lives in Build</span>
+      <button class="btn ghost sm" style="margin-left:auto" onclick="loadRaces()">Reload</button>
+    </div></div>`;
+  if(R.busy) return dateCtl + emptyState('Loading races…','');
+  const d=R.data;
+  if(!d) return dateCtl + emptyState('Pick a date','Load the races on at each course.');
+  if(d.bridge_down) return dateCtl + `<div class="card"><p class="eyebrow">Bridge</p>${bridgeDown()}</div>`;
+  if(d.cards_missing || !d.courses || !d.courses.length){
+    return dateCtl + `<div class="card"><p class="eyebrow">No races</p>
+      <h2 class="section">Nothing found for ${esc(d.date||R.date)}</h2>
+      ${d.pull_cmd?`<p class="muted">If you meant today, pull the cards then reload:</p><p><code>${esc(d.pull_cmd)}</code></p>`:''}
+      <p class="faint small">${(d.errors||[]).map(esc).join(' · ')}</p></div>`;
+  }
+  const cur = R.course || d.courses[0].course;
+  const cobj = d.courses.find(c=>c.course===cur) || d.courses[0];
+  const isHist = d.mode==='historical';
+  const tabs = d.courses.map((c,i)=>
+    `<button class="sb ${c.course===cur?'on':''}" onclick="selectCourseIdx(${i})">${esc(c.course)} <span class="faint">${c.n_races}</span></button>`).join('');
+  const histHead = isHist ? `<th>winner</th><th>winning time</th>` : '';
+  const rows = cobj.races.map((r,ri)=>{
+    const disp = isHist ? `<td class="muted small">${esc((r.display_only||{}).winner||'—')}</td>
+        <td class="muted small">${esc((r.display_only||{}).winning_time||'—')}</td>` : '';
+    const n = r.n_runners!=null ? r.n_runners : (r.field_size!=null?r.field_size:'—');
+    return `<tr onclick="openRunnerIdx(${ri})" style="cursor:pointer">
+      <td><b>${esc(r.off||'—')}</b></td>
+      <td>${esc(r.race_name||'—')}</td>
+      <td class="muted small">${esc(r.type||'?')}</td>
+      <td class="muted small">${esc(r.going||'?')}</td>
+      <td class="muted small">${esc(r.dist||'?')}</td>
+      <td class="num">${n}</td>${disp}
+      <td class="faint">→</td></tr>`;
+  }).join('');
+  const note = isHist
+    ? `<span class="faint small">· historical — winner / winning time are <b>post-race, display-only</b> (never selectable)</span>`
+    : `<span class="faint small">· pre-race only — no price or finishing data exists yet</span>`;
+  return dateCtl + `<div class="card">
+    <p class="eyebrow">${esc(cur)} · ${esc(d.date)} ${note}</p>
+    <div class="subnav" style="flex-wrap:wrap">${tabs}</div>
+    <table>
+      <tr><th>off</th><th>race</th><th>type</th><th>going</th><th>dist</th><th class="num">runners</th>${histHead}<th></th></tr>
+      ${rows}
+    </table>
+    <div class="faint small" style="margin-top:10px">Click a race to open its runner view. Browse only — strategy filtering happens in Build.</div>
+  </div>`;
+}
+
+function openRunnerIdx(ri){
+  const d=state.races.data, cur=state.races.course||d.courses[0].course;
+  const cobj=d.courses.find(c=>c.course===cur)||d.courses[0];
+  state.runnerStub={ course:cur, date:d.date, mode:d.mode, race:cobj.races[ri] };
+  setMode('runner');
+}
+function renderRunnerStub(){
+  const s=state.runnerStub;
+  if(!s) return emptyState('No race selected','Open a race from the Race view.');
+  const r=s.race, n = r.n_runners!=null ? r.n_runners : (r.field_size!=null?r.field_size:'?');
+  const result = (s.mode==='historical' && r.display_only)
+    ? `<div class="faint small" style="margin-top:10px">Race result (display-only): winner <b>${esc(r.display_only.winner||'—')}</b>, winning time ${esc(r.display_only.winning_time||'—')}</div>` : '';
+  return `<div class="card">
+    <p class="eyebrow">Runner view · Task 3 (stub)</p>
+    <div class="rulebar"><b>${esc(s.course)}</b> · ${esc(r.off||'')} · ${esc(r.race_name||'')}
+      <span class="faint small"> — ${esc(r.type||'?')} · ${esc(r.going||'?')} · ${esc(r.dist||'?')} · ${n} runners</span></div>
+    <div class="empty-state"><div class="big">Runner view — Task 3</div>
+      <div class="muted">The per-runner card for this race gets built next. Drill-down target fired.</div>${result}</div>
+    <div class="actions"><button class="btn ghost sm" onclick="setMode('races')">← Back to races</button></div>
+  </div>`;
+}
+
 /* =========================== track mode =========================== */
 function promoteToTrack(){
   const d=state.lastBacktest; if(!d || !d.ok) return;
@@ -916,7 +1019,7 @@ function importTrack(input){
 }
 
 /* =========================== init =========================== */
-function init(){ const d=document.getElementById('f-date'); if(d) d.value=new Date().toISOString().slice(0,10); renderNav(); renderMode(); }
+function init(){ const today=new Date().toISOString().slice(0,10); const d=document.getElementById('f-date'); if(d) d.value=today; state.races.date=today; renderNav(); renderMode(); }
 init();
 </script>
 </body>
