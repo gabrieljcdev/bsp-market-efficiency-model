@@ -107,6 +107,13 @@
   .daterule{border:1px solid var(--accent);background:#eef4ff;border-radius:10px;padding:10px 12px}
   .daterule .dr-cap{font-size:10.5px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;
     margin-bottom:8px;display:flex;align-items:center;gap:6px;font-weight:600}
+  /* runner view: visual divider before the post-race DISPLAY-ONLY column block */
+  th.dcol,td.dcol{border-left:2px solid var(--line)}
+  th.dcol{color:var(--warn)}
+  td.dcol{color:var(--muted)}
+  .colkey{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;margin:2px 0 10px}
+  .colkey .k{display:inline-flex;align-items:center;gap:6px}
+  .colkey .sw{width:10px;height:10px;border-radius:2px;display:inline-block}
   /* split + betting controls */
   .ctl-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13.5px}
   .ctl-row input[type=date]:disabled{opacity:.4}
@@ -268,6 +275,7 @@ const MANIFEST = {
 const ENDPOINT = 'http://127.0.0.1:8765/run';
 const SCAN_ENDPOINT = 'http://127.0.0.1:8765/scan';
 const RACES_ENDPOINT = 'http://127.0.0.1:8765/races';
+const RUNNERS_ENDPOINT = 'http://127.0.0.1:8765/runners';
 const COMMISSION = 0.05;
 
 /* ---- shared verdict convention (four states + neutral no-split) ---- */
@@ -317,7 +325,8 @@ const state = {
   trackSub: 'log',
   track: { seq:1, backtests:[], forwardBets:[] },
   races: { date:'', data:null, course:null, busy:false },   // Race view (Task 2) -- browse/display only
-  runnerStub: null,                                          // drill-down target context for Task 3
+  runnerStub: null,                                          // drill-down target context for the runner view
+  runner: { data:null, busy:false },                        // Runner view (Task 3) -- per-runner detail
 };
 
 /* ---- rule tree ---- */
@@ -582,7 +591,8 @@ function setBusy(s){ state.busy=s; const el=document.getElementById('build-msg')
 /* =========================== mode renders =========================== */
 function setMode(m){
   state.mode=m; renderNav();
-  if(m==='races' && !state.races.data && !state.races.busy){ loadRaces(); }   // auto-load on first entry
+  if(m==='races' && !state.races.data && !state.races.busy){ loadRaces(); }          // auto-load on first entry
+  else if(m==='runner' && state.runnerStub && !state.runner.data && !state.runner.busy){ loadRunners(); }
   else { renderMode(); }
   window.scrollTo(0,0);
 }
@@ -599,7 +609,7 @@ function renderMode(){
   else if(state.mode==='backtest') m.innerHTML = renderBacktestHTML(state.lastBacktest, state.lastBacktestRule);
   else if(state.mode==='scan') m.innerHTML = renderScanHTML(state.lastScan, state.lastScanRule);
   else if(state.mode==='races') m.innerHTML = renderRacesHTML();
-  else if(state.mode==='runner') m.innerHTML = renderRunnerStub();
+  else if(state.mode==='runner') m.innerHTML = renderRunnerHTML();
   else m.innerHTML = renderTrackHTML();
 }
 
@@ -878,20 +888,85 @@ function openRunnerIdx(ri){
   const d=state.races.data, cur=state.races.course||d.courses[0].course;
   const cobj=d.courses.find(c=>c.course===cur)||d.courses[0];
   state.runnerStub={ course:cur, date:d.date, mode:d.mode, race:cobj.races[ri] };
+  state.runner={ data:null, busy:false };     // fresh load for this race
   setMode('runner');
 }
-function renderRunnerStub(){
+async function loadRunners(){
+  const s=state.runnerStub; if(!s){ renderMode(); return; }
+  state.runner.busy=true; renderMode();
+  let d;
+  try{ d=await (await fetch(RUNNERS_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({date:s.date, key:s.race.key})})).json(); }
+  catch(e){ state.runner.busy=false; state.runner.data={ok:false,bridge_down:true}; renderMode(); return; }
+  state.runner.busy=false; state.runner.data=d; renderMode();
+}
+function runnerHead(s){
+  const r=s.race, n = r.n_runners!=null ? r.n_runners : (r.field_size!=null?r.field_size:'?');
+  return `<div class="rulebar"><b>${esc(s.course)}</b> · ${esc(r.off||'')} · ${esc(r.race_name||'')}
+    <span class="faint small"> — ${esc(r.type||'?')} · ${esc(r.going||'?')} · ${esc(r.dist||'?')} · ${n} runners</span></div>`;
+}
+function renderRunnerHTML(){
   const s=state.runnerStub;
   if(!s) return emptyState('No race selected','Open a race from the Race view.');
-  const r=s.race, n = r.n_runners!=null ? r.n_runners : (r.field_size!=null?r.field_size:'?');
-  const result = (s.mode==='historical' && r.display_only)
-    ? `<div class="faint small" style="margin-top:10px">Race result (display-only): winner <b>${esc(r.display_only.winner||'—')}</b>, winning time ${esc(r.display_only.winning_time||'—')}</div>` : '';
+  const R=state.runner;
+  const shell = inner => `<div class="card"><p class="eyebrow">Runner view</p>${runnerHead(s)}${inner}
+    <div class="actions"><button class="btn ghost sm" onclick="setMode('races')">← Back to races</button></div></div>`;
+  if(R.busy) return shell(`<p class="muted">Loading runners…</p>`);
+  const d=R.data;
+  if(!d) return shell(`<p class="muted">Loading…</p>`);
+  if(d.bridge_down) return shell(bridgeDown());
+  if(!d.ok) return shell(`<p class="muted">${(d.errors||['race not found']).map(esc).join('; ')}</p>`);
+
+  const isHist = d.mode==='historical';
+  const dispNote = isHist
+    ? `post-race · display-only · never selectable`
+    : `post-race · empty — the race hasn't run`;
+  const raceDisp = (isHist && d.race.display_only)
+    ? ` <span class="faint small">· result: winner ${esc(d.race.display_only.winner||'—')}, time ${esc(d.race.display_only.winning_time||'—')} (display-only)</span>` : '';
+
+  const cell = v => esc(v==null||v===''?'—':v);
+  const rows = d.runners.map(r=>{
+    const dd=r.display_only||{};
+    const pos = isHist ? cell(dd.position) : '<span class="faint">—</span>';
+    const bsp = isHist && dd.bsp!=null ? Number(dd.bsp).toFixed(2) : '<span class="faint">—</span>';
+    return `<tr>
+      <td class="num">${cell(r.num)}</td>
+      <td class="num">${cell(r.draw)}</td>
+      <td><b>${cell(r.horse)}</b>${r.jockey?`<br><span class="faint small">${esc(r.jockey)}${r.trainer?' · '+esc(r.trainer):''}</span>`:''}</td>
+      <td class="num">${cell(r.age)}</td>
+      <td>${cell(r.sex)}</td>
+      <td class="num">${cell(r.lbs)}</td>
+      <td class="num">${cell(r.or)}</td>
+      <td>${cell(r.hg)}</td>
+      <td class="faint small">${cell(r.form)}</td>
+      <td class="num dcol">${pos}</td>
+      <td class="num dcol">${bsp}</td>
+    </tr>`;
+  }).join('');
+
+  const colkey = `<div class="colkey">
+    <span class="k"><span class="sw" style="background:var(--chip);border:1px solid var(--chip-line)"></span> selection-input · pre-race (what a rule may touch)</span>
+    <span class="k"><span class="sw" style="background:#fbf3e6;border:1px solid #f0dcb4"></span> display-only · ${esc(dispNote)}</span>
+  </div>`;
+
+  const l2 = `<div class="hr" style="margin:18px 0 8px"></div>
+    <p class="eyebrow">History-dependent fields <span class="faint" style="text-transform:none;letter-spacing:0">· Layer 2</span></p>
+    <div class="leak-note">⏳ <b>Needs history join — pending.</b> ${esc((d.layer2_columns||['or_trajectory','class_change','cd_flags','dslr','win_pct','place_pct']).join(', '))} require joining each runner to its <b>strictly-prior</b> runs (date-sorted; current and future runs excluded). To be built once, shared with the scanner's Tier 2. These touch <code>pos</code>, so they are leakage-safe only from prior runs — not synthesised here.</div>`;
+
   return `<div class="card">
-    <p class="eyebrow">Runner view · Task 3 (stub)</p>
-    <div class="rulebar"><b>${esc(s.course)}</b> · ${esc(r.off||'')} · ${esc(r.race_name||'')}
-      <span class="faint small"> — ${esc(r.type||'?')} · ${esc(r.going||'?')} · ${esc(r.dist||'?')} · ${n} runners</span></div>
-    <div class="empty-state"><div class="big">Runner view — Task 3</div>
-      <div class="muted">The per-runner card for this race gets built next. Drill-down target fired.</div>${result}</div>
+    <p class="eyebrow">Runner view · ${esc(d.race.course)} · ${esc(d.date)}${raceDisp}</p>
+    ${runnerHead(s)}
+    ${colkey}
+    <table>
+      <tr>
+        <th class="num">no</th><th class="num">draw</th><th>horse</th><th class="num">age</th>
+        <th>sex</th><th class="num">lbs</th><th class="num">OR</th><th>hg</th><th>form</th>
+        <th class="num dcol">pos</th><th class="num dcol">BSP</th>
+      </tr>
+      ${rows}
+    </table>
+    <div class="faint small" style="margin-top:8px">Left block = pre-race selection-input fields. Right block (pos, BSP) = ${esc(dispNote)}. Display only — no filtering here.</div>
+    ${l2}
     <div class="actions"><button class="btn ghost sm" onclick="setMode('races')">← Back to races</button></div>
   </div>`;
 }

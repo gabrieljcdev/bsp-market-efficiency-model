@@ -763,6 +763,146 @@ def races_endpoint(req):
 
 
 # --------------------------------------------------------------------------- #
+# Runner view (Task 3) -- per-runner detail for ONE race. Same DISPLAY-vs-      #
+# SELECTION discipline, now at runner level:                                   #
+#   * SELECTION-INPUT columns  -> pre-race fields a rule could touch.           #
+#   * DISPLAY-ONLY columns     -> post-race (position, BSP) shown on HISTORICAL #
+#     runners under a "never selectable" banner; EMPTY on today's cards (the    #
+#     racecard has no such fields). Reuses Task 2's card/CSV resolution path.   #
+# Layer 2 (history-join fields: OR trajectory, class-change, C/D/CD flags,      #
+# DSLR, win%/place%) is NOT built here -- it needs the strictly-prior,          #
+# date-sorted join shared with the scanner's Tier 2. Marked 'pending'.          #
+# --------------------------------------------------------------------------- #
+RUNNER_SELECTION_COLS = ["num", "draw", "horse", "age", "sex", "lbs", "or", "hg", "form"]
+RUNNER_DISPLAY_COLS = ["position", "bsp"]      # post-race; winning_time is race-level
+RUNNER_LAYER2_COLS = ["or_trajectory", "class_change", "cd_flags", "dslr", "win_pct", "place_pct"]
+
+
+def _intkey(v):
+    """Sort key that orders numeric cloth numbers naturally, blanks/strings last."""
+    try:
+        return (0, int(v))
+    except (TypeError, ValueError):
+        return (1, str(v if v is not None else "~"))
+
+
+def _runner_view_meta(extra):
+    base = {"selection_columns": RUNNER_SELECTION_COLS,
+            "display_columns": RUNNER_DISPLAY_COLS,
+            "layer2_columns": RUNNER_LAYER2_COLS,
+            "layer2_status": "pending"}
+    base.update(extra)
+    return base
+
+
+def _runners_from_cards(cards, key, date_str, path):
+    """Today's runners from the matching racecard -- pre-race only; the display-
+    only post-race columns are EMPTY (the race has not run). Reuses scan_today."""
+    import scan_today
+    for region, courses in cards.items():
+        for course, offs in courses.items():
+            for off, card in offs.items():
+                cname = card.get("course", course)
+                k = f"{card.get('date')}|{cname}|{card.get('off_time', off)}"
+                if k != key:
+                    continue
+                rows, _ = scan_today._runner_rows(card)       # active runners only
+                runners = []
+                for inp, disp in rows:
+                    runners.append({
+                        "num": disp.get("no"), "draw": disp.get("draw"),
+                        "horse": disp.get("horse"), "age": disp.get("age"),
+                        "sex": disp.get("sex"), "lbs": disp.get("lbs"),
+                        "or": disp.get("or"), "hg": disp.get("hg"),
+                        "form": disp.get("form"), "jockey": disp.get("jockey"),
+                        "trainer": disp.get("trainer"),
+                        "display_only": {"position": None, "bsp": None},   # race not run
+                        "history": None,                                   # Layer 2 pending
+                    })
+                runners.sort(key=lambda x: _intkey(x.get("num")))
+                return _runner_view_meta({
+                    "ok": True, "mode": "today", "date": date_str,
+                    "source": os.path.relpath(path, _ROOT),
+                    "race": {
+                        "course": cname, "off": card.get("off_time", off),
+                        "race_name": card.get("race_name"), "type": card.get("race_type"),
+                        "going": card.get("going"), "dist": card.get("distance"),
+                        "n_runners": len(runners),
+                        "display_only": {"winner": None, "winning_time": None},
+                    },
+                    "runners": runners,
+                })
+    return {"ok": False, "errors": [f"race {key} not found in cards for {date_str}"]}
+
+
+def _runners_from_csv(src, key, date_str):
+    """Historical runners for one race (matched by race id). Post-race position
+    and BSP ride along DISPLAY-ONLY; winner/winning-time are race-level."""
+    rows = []
+    with open(src, newline="") as f:
+        for r in csv.DictReader(f):
+            if clv._race_id(r) == key:
+                rows.append(r)
+    if not rows:
+        return {"ok": False, "errors": [f"race {key} not found in history"]}
+
+    winner, wtime = None, None
+    runners = []
+    for r in rows:
+        if clv._won(r):
+            winner = r.get("horse")
+            wt = (r.get("time") or "").strip()
+            wtime = wt if wt and wt != "-" else None
+        pos = (r.get("pos") or "").strip() or None
+        runners.append({
+            "num": r.get("num"), "draw": r.get("draw"), "horse": r.get("horse"),
+            "age": r.get("age"), "sex": r.get("sex"), "lbs": r.get("lbs"),
+            "or": r.get("or"), "hg": r.get("hg"), "form": None,   # no form col in joined set
+            "jockey": r.get("jockey"), "trainer": r.get("trainer"),
+            "display_only": {"position": pos, "bsp": clv._fnum(r.get("bsp"))},
+            "history": None,                                       # Layer 2 pending
+        })
+    runners.sort(key=lambda x: _intkey(x.get("num")))
+    r0 = rows[0]
+    return _runner_view_meta({
+        "ok": True, "mode": "historical", "date": date_str,
+        "source": os.path.relpath(src, _ROOT),
+        "race": {
+            "course": r0.get("course"), "off": r0.get("off"),
+            "race_name": r0.get("race_name"), "type": r0.get("type"),
+            "going": r0.get("going"), "dist": r0.get("dist"),
+            "n_runners": len(runners),
+            "display_only": {"winner": winner, "winning_time": wtime},
+        },
+        "runners": runners,
+    })
+
+
+def runners_endpoint(req):
+    """Per-runner detail for one race. Cards if pulled (price-free, display-only
+    columns empty) else the historical joined set (post-race display-only)."""
+    import datetime
+    sys.path.insert(0, _HERE)
+    import scan_today
+
+    date_str = req.get("date") or datetime.date.today().isoformat()
+    key = req.get("key")
+    if not key:
+        return {"ok": False, "errors": ["missing race key"]}
+
+    path = scan_today.find_cards(date_str, req.get("cards"))
+    if path:
+        with open(path) as fh:
+            cards = json.load(fh)
+        return _runners_from_cards(cards, key, date_str, path)
+
+    src = DEFAULT_CSV
+    if not os.path.exists(src):
+        return {"ok": False, "errors": [f"no racecard for {date_str} and CSV missing"]}
+    return _runners_from_csv(src, key, date_str)
+
+
+# --------------------------------------------------------------------------- #
 # Minimal local endpoint (stdlib http.server -- no Flask).                     #
 # --------------------------------------------------------------------------- #
 def serve(port=8765):
@@ -794,7 +934,8 @@ def serve(port=8765):
                 "post": {
                     "/run":   "body=strategy.json (+ optional mode: count|backtest)",
                     "/scan":  "body=strategy.json (+ optional date) -> today's qualifying races (Tier 1)",
-                    "/races": "body={date?} -> per-course race list (browse/display; no rule filtering)",
+                    "/races":   "body={date?} -> per-course race list (browse/display; no rule filtering)",
+                    "/runners": "body={date?, key} -> per-runner detail for one race (display vs selection)",
                 },
                 "default_csv": os.path.relpath(DEFAULT_CSV, _ROOT),
                 "struck_col": DEFAULT_STRUCK_COL, "commission": DEFAULT_COMMISSION,
@@ -802,7 +943,7 @@ def serve(port=8765):
 
         def do_POST(self):
             p = self.path.rstrip("/")
-            if p not in ("", "/run", "/scan", "/races"):
+            if p not in ("", "/run", "/scan", "/races", "/runners"):
                 return self._json(404, {"ok": False, "errors": [f"no route {self.path}"]})
             try:
                 n = int(self.headers.get("Content-Length", 0))
@@ -814,6 +955,8 @@ def serve(port=8765):
                     self._json(200, scan_today_endpoint(strategy))
                 elif p == "/races":
                     self._json(200, races_endpoint(strategy))
+                elif p == "/runners":
+                    self._json(200, runners_endpoint(strategy))
                 else:
                     self._json(200, run_strategy(strategy, mode=strategy.get("mode", "backtest")))
             except Exception as e:
