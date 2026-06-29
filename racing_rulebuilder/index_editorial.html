@@ -323,11 +323,16 @@ const state = {
   lastScan: null, lastScanRule: '',
   busy: '',
   trackSub: 'log',
-  track: { seq:1, backtests:[], forwardBets:[] },
+  track: { seq:1, backtests:[], forwardBets:[], watchlist:[] },  // watchlist persists with Track export/import
   races: { date:'', data:null, course:null, busy:false },   // Race view (Task 2) -- browse/display only
   runnerStub: null,                                          // drill-down target context for the runner view
   runner: { data:null, busy:false },                        // Runner view (Task 3) -- per-runner detail
+  runnerFrom: 'races',                                       // where the runner view was opened from
+  flags: { date:'', data:null, busy:false, demo:false },    // saved-strategy auto-scan flags
 };
+/* verdict gate: only these tiers auto-scan in normal use (priced/thin are blocked). */
+const ACTIVE_VERDICTS = new Set(['ruled-in','to-holdout']);
+function entryActive(e){ return state.flags.demo || ACTIVE_VERDICTS.has(e.verdict); }
 
 /* ---- rule tree ---- */
 function findGroup(id, node=ROOT){
@@ -571,6 +576,7 @@ async function runBacktest(){
   setBusy('');
   state.lastBacktest = d;
   state.lastBacktestRule = renderSentenceHTML(ROOT, true, true);
+  state.lastBacktestStrategy = currentStrategy();     // snapshot for the watchlist
   setMode('backtest');
 }
 async function scanToday(){
@@ -593,12 +599,13 @@ function setMode(m){
   state.mode=m; renderNav();
   if(m==='races' && !state.races.data && !state.races.busy){ loadRaces(); }          // auto-load on first entry
   else if(m==='runner' && state.runnerStub && !state.runner.data && !state.runner.busy){ loadRunners(); }
+  else if(m==='flags' && !state.flags.data && !state.flags.busy){ runAutoScan(); }   // auto-scan on opening
   else { renderMode(); }
   window.scrollTo(0,0);
 }
 function renderNav(){
-  const modes=[['build','Build'],['backtest','Backtest'],['scan','Scan'],['races','Races'],['track','Track']];
-  const active = state.mode==='runner' ? 'races' : state.mode;   // runner is a drill destination of Races
+  const modes=[['build','Build'],['backtest','Backtest'],['scan','Scan'],['races','Races'],['flags','Flags'],['track','Track']];
+  const active = state.mode==='runner' ? state.runnerFrom : state.mode;   // runner is a drill destination
   document.getElementById('nav').innerHTML = modes.map(([k,l])=>
     `<button class="navbtn${active===k?' on':''}" onclick="setMode('${k}')">${l}</button>`).join('');
 }
@@ -609,6 +616,7 @@ function renderMode(){
   else if(state.mode==='backtest') m.innerHTML = renderBacktestHTML(state.lastBacktest, state.lastBacktestRule);
   else if(state.mode==='scan') m.innerHTML = renderScanHTML(state.lastScan, state.lastScanRule);
   else if(state.mode==='races') m.innerHTML = renderRacesHTML();
+  else if(state.mode==='flags') m.innerHTML = renderFlagsHTML();
   else if(state.mode==='runner') m.innerHTML = renderRunnerHTML();
   else m.innerHTML = renderTrackHTML();
 }
@@ -760,7 +768,7 @@ function renderBacktestHTML(d, ruleHTML){
       ${verdictHeader(d.verdict, d.verdict_reason)}
       <div class="cols">${col('Discovery', d.discovery)}${col('Holdout', d.holdout)}</div>
       ${stakingRowHTML([{stk:(d.discovery||{}).staking,label:'Discovery'},{stk:(d.holdout||{}).staking,label:'Holdout'}])}
-      <div class="actions">${promote}<button class="btn ghost sm" onclick="setMode('build')">← Build</button></div>
+      <div class="actions">${promote}<button class="btn ghost sm" onclick="addToWatchlist()">★ Add to watchlist</button><button class="btn ghost sm" onclick="setMode('build')">← Build</button></div>
     </div>`;
   }
   // single population (no split) -> no verdict, neutral header
@@ -889,6 +897,7 @@ function openRunnerIdx(ri){
   const cobj=d.courses.find(c=>c.course===cur)||d.courses[0];
   state.runnerStub={ course:cur, date:d.date, mode:d.mode, race:cobj.races[ri] };
   state.runner={ data:null, busy:false };     // fresh load for this race
+  state.runnerFrom='races';
   setMode('runner');
 }
 async function loadRunners(){
@@ -910,7 +919,7 @@ function renderRunnerHTML(){
   if(!s) return emptyState('No race selected','Open a race from the Race view.');
   const R=state.runner;
   const shell = inner => `<div class="card"><p class="eyebrow">Runner view</p>${runnerHead(s)}${inner}
-    <div class="actions"><button class="btn ghost sm" onclick="setMode('races')">← Back to races</button></div></div>`;
+    <div class="actions"><button class="btn ghost sm" onclick="setMode(state.runnerFrom||'races')">← Back to ${state.runnerFrom==='flags'?'flags':'races'}</button></div></div>`;
   if(R.busy) return shell(`<p class="muted">Loading runners…</p>`);
   const d=R.data;
   if(!d) return shell(`<p class="muted">Loading…</p>`);
@@ -967,8 +976,126 @@ function renderRunnerHTML(){
     </table>
     <div class="faint small" style="margin-top:8px">Left block = pre-race selection-input fields. Right block (pos, BSP) = ${esc(dispNote)}. Display only — no filtering here.</div>
     ${l2}
-    <div class="actions"><button class="btn ghost sm" onclick="setMode('races')">← Back to races</button></div>
+    <div class="actions"><button class="btn ghost sm" onclick="setMode(state.runnerFrom||'races')">← Back to ${state.runnerFrom==='flags'?'flags':'races'}</button></div>
   </div>`;
+}
+
+/* =========================== flags (saved-strategy watchlist auto-scan) ===========================
+   Connective tissue only -- reuses /scan (today's pulled cards) and the runner
+   view. A saved strategy carries its verdict tier; only ruled-in / to-holdout
+   auto-scan in normal use (the gate), priced/thin are blocked. */
+function addToWatchlist(){
+  const d=state.lastBacktest; if(!d || !d.ok || !d.split) return;     // need a verdict
+  const ruleText=(state.lastBacktestRule||'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+  const strat = state.lastBacktestStrategy || currentStrategy();      // strategy as validated
+  state.track.watchlist.unshift({
+    id: state.track.seq++, name: ruleText || 'strategy',
+    verdict: d.verdict, cutoff: d.split.date_cutoff, strategy: strat,
+  });
+  state.flags.data=null;        // force a fresh auto-scan
+  setMode('flags');
+}
+function removeWatchlist(id){ state.track.watchlist=state.track.watchlist.filter(e=>e.id!==id); state.flags.data=null; renderMode(); }
+function toggleFlagsDemo(on){ state.flags.demo=on; runAutoScan(); }
+function setFlagsDate(v){ state.flags.date=v; runAutoScan(); }
+
+async function runAutoScan(){
+  const F=state.flags;
+  if(!F.date) F.date=new Date().toISOString().slice(0,10);
+  const wl=state.track.watchlist;
+  const active=wl.filter(entryActive), blocked=wl.filter(e=>!entryActive(e));
+  F.busy=true; renderMode();
+  const flags=[], scanned=[]; let cardsMissing=null;
+  for(const e of active){
+    let d;
+    try{ d=await (await fetch(SCAN_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(Object.assign({}, e.strategy, {date:F.date}))})).json(); }
+    catch(err){ F.busy=false; F.data={bridge_down:true}; renderMode(); return; }
+    if(d.cards_missing){ cardsMissing=d; continue; }
+    if(!d.ok || !d.races){ scanned.push({name:e.name, verdict:e.verdict, n:0, error:(d.errors||['error']).join('; ')}); continue; }
+    scanned.push({name:e.name, verdict:e.verdict, n:d.n_qualifiers});
+    for(const r of d.races){
+      flags.push({ strategy:e.name, verdict:e.verdict, date:F.date,
+        course:r.course, off:r.off, race_name:r.race_name, type:r.type, going:r.going, dist:r.dist,
+        field_size:r.field_size, n_qualifiers:r.n_qualifiers, key:`${F.date}|${r.course}|${r.off}` });
+    }
+  }
+  flags.sort((a,b)=>String(a.off).localeCompare(String(b.off)) || String(a.course).localeCompare(String(b.course)));
+  F.busy=false;
+  F.data={ date:F.date, flags, scanned, blocked:blocked.map(e=>({name:e.name,verdict:e.verdict})),
+           cards_missing: !!cardsMissing, pull_cmd: cardsMissing? cardsMissing.pull_cmd:null, n_active:active.length };
+  renderMode();
+}
+
+function openFlag(i){
+  const f=state.flags.data.flags[i];
+  state.runnerStub={ course:f.course, date:f.date, mode:'today',
+    race:{ key:f.key, off:f.off, race_name:f.race_name, type:f.type, going:f.going, dist:f.dist, n_runners:f.field_size||null } };
+  state.runner={data:null,busy:false}; state.runnerFrom='flags';
+  setMode('runner');
+}
+
+function renderFlagsHTML(){
+  const F=state.flags, wl=state.track.watchlist;
+  const dateCtl=`<div class="card tight">
+    <p class="eyebrow">Flags <span class="faint" style="text-transform:none;letter-spacing:0">· watchlist auto-scan</span></p>
+    <div class="ctl-row">
+      <span class="muted small">scan date</span>
+      <input type="date" value="${esc(F.date)}" onchange="setFlagsDate(this.value)">
+      <label class="switch" style="font-weight:400;font-size:13px"><input type="checkbox" ${F.demo?'checked':''} onchange="toggleFlagsDemo(this.checked)"> demo: scan blocked tiers too</label>
+      <button class="btn ghost sm" style="margin-left:auto" onclick="runAutoScan()">Re-scan</button>
+    </div>
+    <div class="faint small" style="margin-top:8px">Auto-scans already-pulled cards against saved strategies. Only <b>ruled-in / to-holdout</b> auto-scan; priced/thin are blocked (the demo toggle overrides, only to prove wiring).</div>
+  </div>`;
+
+  let wlHTML;
+  if(!wl.length){
+    wlHTML=`<div class="card"><p class="eyebrow">Watchlist</p><div class="empty-state"><div class="big">No saved strategies</div>
+      <div class="muted">Run a backtest with a discovery/holdout split, then “★ Add to watchlist”.</div></div></div>`;
+  } else {
+    const rows=wl.map(e=>{
+      const gated=ACTIVE_VERDICTS.has(e.verdict);
+      const status = gated ? '<span class="vchip"><span class="dot d-ok"></span>active</span>'
+        : (F.demo ? '<span class="vchip"><span class="dot d-warn"></span>blocked · demo on</span>'
+                  : '<span class="vchip"><span class="dot d-grey"></span>blocked</span>');
+      return `<tr>
+        <td>${verdictChip(e.verdict)}</td><td>${esc(e.name)}</td>
+        <td class="muted small">${e.cutoff?esc(e.cutoff):'—'}</td><td>${status}</td>
+        <td><button class="link" onclick="removeWatchlist(${e.id})">remove</button></td></tr>`;
+    }).join('');
+    wlHTML=`<div class="card"><p class="eyebrow">Watchlist · ${wl.length} saved</p>
+      <table><tr><th>verdict</th><th>strategy</th><th>cutoff</th><th>auto-scan</th><th></th></tr>${rows}</table>
+      <div class="faint small" style="margin-top:10px">Saved strategies persist with Track export/import (no browser storage).</div></div>`;
+  }
+
+  let flagHTML='';
+  if(F.busy){ flagHTML=emptyState('Scanning saved strategies…',''); }
+  else if(F.data){
+    const d=F.data;
+    if(d.bridge_down){ flagHTML=`<div class="card"><p class="eyebrow">Flags</p>${bridgeDown()}</div>`; }
+    else if(d.cards_missing){ flagHTML=`<div class="card"><p class="eyebrow">Flags</p>
+        <h2 class="section">No cards pulled for ${esc(d.date)}</h2>
+        <p class="muted">Pull them, then re-scan:</p><p><code>${esc(d.pull_cmd)}</code></p></div>`; }
+    else {
+      const summary=`<div class="summary"><b>${d.flags.length}</b> flagged race${d.flags.length===1?'':'s'} · ${d.n_active} active strateg${d.n_active===1?'y':'ies'} scanned${d.blocked.length?` · ${d.blocked.length} blocked`:''} · ${esc(d.date)}</div>`;
+      let body;
+      if(!d.flags.length){
+        body=`<p class="muted">No qualifiers in ${esc(d.date)}'s cards from the active strategies.${(d.blocked.length&&!F.demo)?' Some are blocked by the verdict gate — toggle demo to include them.':''}</p>`;
+      } else {
+        body=`<table><tr><th>off</th><th>course</th><th>race</th><th>strategy</th><th>verdict</th><th class="num">quals</th><th></th></tr>`
+          + d.flags.map((f,i)=>`<tr onclick="openFlag(${i})" style="cursor:pointer">
+              <td><b>${esc(f.off)}</b></td><td>${esc(f.course)}</td>
+              <td>${esc(f.race_name||'—')} <span class="faint small">${esc(f.type||'')} · ${esc(f.going||'')}</span></td>
+              <td class="small">${esc(f.strategy)}</td><td>${verdictChip(f.verdict)}</td>
+              <td class="num">${f.n_qualifiers}</td><td class="faint">→</td></tr>`).join('')
+          + `</table>`;
+      }
+      const blockedNote = d.blocked.length ? `<div class="faint small" style="margin-top:10px">Blocked by gate (not scanned): ${d.blocked.map(b=>esc(b.name)+' ['+esc(b.verdict||'no verdict')+']').join(' · ')}</div>` : '';
+      flagHTML=`<div class="card"><p class="eyebrow">Flagged races · ${esc(d.date)}</p>${summary}${body}${blockedNote}
+        <div class="faint small" style="margin-top:8px">Click a flag to drill into the runner view. Reuses the /scan endpoint — no new scoring.</div></div>`;
+    }
+  }
+  return dateCtl + wlHTML + flagHTML;
 }
 
 /* =========================== track mode =========================== */
@@ -1087,14 +1214,15 @@ function importTrack(input){
   r.onload=()=>{ try{ const s=JSON.parse(r.result);
     state.track.backtests=Array.isArray(s.backtests)?s.backtests:[];
     state.track.forwardBets=Array.isArray(s.forwardBets)?s.forwardBets:[];
-    const mx=Math.max(0,...state.track.backtests.map(b=>b.id||0),...state.track.forwardBets.map(b=>b.id||0));
-    state.track.seq=Math.max(s.seq||0,mx+1); renderMode();
+    state.track.watchlist=Array.isArray(s.watchlist)?s.watchlist:[];
+    const mx=Math.max(0,...state.track.backtests.map(b=>b.id||0),...state.track.forwardBets.map(b=>b.id||0),...state.track.watchlist.map(b=>b.id||0));
+    state.track.seq=Math.max(s.seq||0,mx+1); state.flags.data=null; renderMode();
   }catch(e){ alert('Import failed: '+e.message); } };
   r.readAsText(f); input.value='';
 }
 
 /* =========================== init =========================== */
-function init(){ const today=new Date().toISOString().slice(0,10); const d=document.getElementById('f-date'); if(d) d.value=today; state.races.date=today; renderNav(); renderMode(); }
+function init(){ const today=new Date().toISOString().slice(0,10); const d=document.getElementById('f-date'); if(d) d.value=today; state.races.date=today; state.flags.date=today; renderNav(); renderMode(); }
 init();
 </script>
 </body>
