@@ -129,6 +129,21 @@ def _eval_rule(rule, row):
         if op == "range":           return val[0] <= x <= val[1]
         return False
 
+    if typ == "date":
+        # ISO-8601 dates (YYYY-MM-DD) sort lexically, so string comparison is
+        # exact. This is a SELECTION rule on the race date -- independent of the
+        # discovery/holdout split and date_from/date_to slicing.
+        s = ("" if raw is None else str(raw)).strip()
+        if not s:
+            return False
+        if op in ("<", "before"):    return s < val
+        if op in ("≤", "<="):        return s <= val
+        if op in ("=", "==", "on"):  return s == val
+        if op in ("≥", ">="):        return s >= val
+        if op in (">", "after"):     return s > val
+        if op == "range":            return val[0] <= s <= val[1]
+        return False
+
     if typ == "categorical":
         # racecard JSON carries native ints (e.g. class=3) where the historical
         # CSV is all strings -- coerce to str so .strip()/.lower() never blow up.
@@ -247,6 +262,14 @@ def run_strategy(strategy, mode="backtest"):
                     if do_split else None)
     want_scoring = (mode != "count")
 
+    # --- optional staking / bankroll simulation (SECONDARY to the verdict) ---- #
+    # Order-dependent compounding; computed server-side so the browser never sees
+    # the CSV. Kelly reads model_prob from the EXISTING stage-1 scored output.
+    staking_cfg = strategy.get("staking") or None
+    prob_map = None
+    if staking_cfg and want_scoring and staking_cfg.get("model") == "kelly":
+        prob_map = _load_prob_map()
+
     parts = ["discovery", "holdout"] if do_split else ["all"]
     qual = {p: 0 for p in parts}
     bets = {p: [] for p in parts}
@@ -301,7 +324,7 @@ def run_strategy(strategy, mode="backtest"):
                 skipped_price[p] += 1
                 continue
             bets[p].append({
-                "race_id": rid, "horse": r.get("horse"),
+                "race_id": rid, "horse": r.get("horse"), "date": d,
                 "type": r.get("type"), "struck": struck, "bsp": bsp, "won": won,
             })
 
@@ -350,6 +373,8 @@ def run_strategy(strategy, mode="backtest"):
         b["edge_bsp"] = b["edge_bsp_fair"]      # headline / verdict metric
         if b["clv"]:
             b["by_type"] = _by_type(bets[p], commission)
+        if staking_cfg and bets[p]:
+            b["staking"] = _staking_curves(bets[p], commission, staking_cfg, prob_map)
         return b
 
     # --- assemble + verdict --------------------------------------------------
@@ -380,6 +405,8 @@ def run_strategy(strategy, mode="backtest"):
         res["edge_bsp_fullfield"] = a["edge_bsp_fullfield"]
         res["edge_bsp_fair"] = a["edge_bsp_fair"]
         res["edge_bsp"] = a["edge_bsp"]
+        if a.get("staking"):
+            res["staking"] = a["staking"]
         if a["clv"]:
             res["by_type"] = a["by_type"]
         else:
@@ -465,6 +492,126 @@ def _model_overlay(bets, commission):
     s = clv.summarise(value, commission)
     return {"available": True, "n_value_bets": len(value), "clv": s,
             "note": "value = model fair price < struck (stage-1 scored output, read-only)."}
+
+
+# --------------------------------------------------------------------------- #
+# Staking / bankroll simulation.  SECONDARY to the edge verdict, by design:    #
+# this is order-dependent compounding P&L, NOT a fresh edge test. A 'priced'   #
+# rule will grind the @BSP curve down -- compounding amplifies variance/drag,  #
+# it can never manufacture edge. CLV / verdict / leakage logic is untouched.   #
+# --------------------------------------------------------------------------- #
+_CURVE_POINTS = 120          # downsample target for the equity curve sent to the UI
+
+
+def _load_prob_map():
+    """(race_id, horse) -> model_prob from the EXISTING stage-1 scored output.
+
+    Read-only; we never refit. Returns None if the scored file is absent (Kelly
+    then degrades to 'no model prob -> no stake', reported via kelly_coverage).
+    """
+    if not os.path.exists(STAGE1_SCORED):
+        return None
+    prob = {}
+    with open(STAGE1_SCORED, newline="") as fh:
+        for r in csv.DictReader(fh):
+            p = clv._fnum(r.get("model_prob"))
+            if p is not None:
+                prob[(r.get("race_id"), r.get("horse"))] = p
+    return prob
+
+
+def _downsample_pairs(pts, k):
+    """Even-stride downsample to <= k (x, y) pairs, always keeping first & last."""
+    n = len(pts)
+    if n <= k:
+        return [[x, y] for (x, y) in pts]
+    step = (n - 1) / float(k - 1)
+    idx = sorted({int(round(i * step)) for i in range(k)} | {0, n - 1})
+    return [[pts[i][0], pts[i][1]] for i in idx]
+
+
+def _staking_curves(bets, commission, staking, prob_map):
+    """Back-side bankroll simulation over the qualifying bets.
+
+    Stakes are decided at the STRUCK price (the price you'd actually take); the
+    SAME stake sequence is then settled twice -- at struck (wap, the timing
+    artifact) and at bsp (the honest close) -- so the two curves are directly
+    comparable. fixed_pct and kelly compound on the running bank; flat is a
+    constant unit. Bets are sorted chronologically first (the joined CSV is NOT
+    globally date-sorted, so naive row order would corrupt the compound path).
+
+    Returns {config, n_bets, struck:{...}, bsp:{...}[, kelly_coverage]} where each
+    settle block carries a downsampled equity curve plus final bank / ROI /
+    max-drawdown / ruin.
+    """
+    model = staking.get("model", "fixed_pct")
+    bank0 = float(staking.get("bankroll", 1000.0) or 1000.0)
+    pct = float(staking.get("pct", 0.03) or 0.0)
+    flat = float(staking.get("flat", 0.0) or 0.0)
+    kf = float(staking.get("kelly_fraction", 0.25) or 0.0)
+
+    sb = sorted(bets, key=lambda b: (b.get("date") or "", str(b.get("race_id") or "")))
+
+    # Per-bet stake FRACTION of current bank (None for flat, which is absolute).
+    #   fixed_pct -> constant pct ; kelly -> fractional-Kelly at struck odds vs p.
+    fracs = []
+    kelly_cov = {"n_with_prob": 0, "n_total": len(sb)}
+    for b in sb:
+        if model == "kelly":
+            p = prob_map.get((b["race_id"], b["horse"])) if prob_map else None
+            o = b["struck"]
+            if p and p > 0 and o > 1.0:
+                kelly_cov["n_with_prob"] += 1
+                f_full = (o * p - 1.0) / (o - 1.0)     # full-Kelly fraction at struck odds
+                fracs.append(max(0.0, kf * f_full))    # clamp negatives -> no bet
+            else:
+                fracs.append(0.0)                      # no model prob -> stand aside
+        elif model == "flat":
+            fracs.append(None)
+        else:                                          # fixed_pct (default)
+            fracs.append(pct)
+
+    def simulate(price_key):
+        bank = peak = bank0
+        max_dd = 0.0
+        n_staked = 0
+        ruin = False
+        pts = [(0, round(bank0, 2))]
+        for i, b in enumerate(sb):
+            if bank <= 0:
+                ruin = True
+                break
+            stake = (min(flat, bank) if flat > 0 else 0.0) if model == "flat" \
+                else fracs[i] * bank
+            if stake > 0:
+                n_staked += 1
+                price = b[price_key]
+                bank += (stake * (price - 1.0) * (1.0 - commission)) if b["won"] else -stake
+            if bank > peak:
+                peak = bank
+            if peak > 0:
+                max_dd = max(max_dd, (peak - bank) / peak)
+            pts.append((i + 1, round(bank, 2)))
+        return {
+            "final_bank": round(bank, 2),
+            "roi": (bank / bank0 - 1.0) if bank0 else None,
+            "growth": (bank / bank0) if bank0 else None,
+            "max_drawdown": max_dd,
+            "n_staked": n_staked,
+            "ruin": ruin,
+            "curve": _downsample_pairs(pts, _CURVE_POINTS),
+        }
+
+    out = {
+        "config": {"model": model, "bankroll": bank0, "pct": pct,
+                   "flat": flat, "kelly_fraction": kf},
+        "n_bets": len(sb),
+        "struck": simulate("struck"),
+        "bsp": simulate("bsp"),
+    }
+    if model == "kelly":
+        out["kelly_coverage"] = kelly_cov
+    return out
 
 
 # --------------------------------------------------------------------------- #

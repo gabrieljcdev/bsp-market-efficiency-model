@@ -70,6 +70,20 @@
   .actions{display:flex;gap:10px;margin-top:8px}
   .hint{color:var(--muted);font-size:11px;margin-top:4px}
   .err{color:var(--bad);font-size:12px;margin-top:8px;min-height:16px}
+  /* enum_select picker (searchable for course 65 / hg 58 etc.) */
+  .enumwrap{min-width:280px}
+  .enumlist{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+  .enopt{padding:6px 11px;cursor:pointer;font-size:12.5px;border-bottom:1px solid var(--line)}
+  .enopt:last-child{border-bottom:none}
+  .enopt:hover{background:#13314f}
+  .enopt.on{background:#13314f;color:var(--accent);font-weight:600}
+  .enopt.on:before{content:"✓ ";color:var(--accent)}
+  .enumcount{font-size:11px;color:var(--muted);margin-top:5px}
+  /* date SELECTION rule -- deliberately distinct from the discovery/holdout split cutoff */
+  .daterule{border:1px solid var(--accent2);background:#0d2237;border-radius:8px;padding:10px 12px}
+  .daterule .dr-cap{font-size:10.5px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;
+    margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .daterule input[type=date]{background:var(--bg)}
   /* rules panel */
   .rules .empty{color:var(--muted);font-size:12px;font-style:italic}
   .rule{border:1px solid var(--line);background:var(--panel2);border-radius:8px;
@@ -252,51 +266,54 @@ const MANIFEST = {
   n_columns: 52,
   operators: {
     numeric: ["<","≤","=","≥",">","range"],
+    enum_select: ["is","in"],
+    date: ["on","before","after","range"],
+    text_match: ["is","in"],
     categorical: ["is","in"],
     flag: ["true","false"]
   },
   derived_leakage_note: "prior-run only — must join to history STRICTLY before current race date; no same-race or future data.",
   fields: [
-    {name:"date",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"region",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"course",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"course_detail",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
-    {name:"off",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"race_name",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"type",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"class",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"pattern",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
-    {name:"rating_band",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
-    {name:"age_band",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"sex_rest",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
-    {name:"dist",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"dist_f",stage:"pre_race",type:"numeric",dtype:"object",selectable:true,coerce:true,note:"object-typed (non-numeric tokens); coerce to numeric."},
-    {name:"dist_m",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true},
-    {name:"going",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"surface",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"ran",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true},
-    {name:"num",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true},
+    {name:"date",stage:"pre_race",type:"date",dtype:"object",selectable:true,control:"date"},
+    {name:"region",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"constant"},
+    {name:"course",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"enum_select",values:["Aintree", "Ascot", "Ayr", "Bangor-on-Dee", "Bath", "Beverley", "Brighton", "Carlisle", "Cartmel", "Catterick", "Chelmsford (AW)", "Cheltenham", "Chepstow", "Chester", "Doncaster", "Epsom", "Exeter", "Fakenham", "Ffos Las", "Fontwell", "Goodwood", "Hamilton", "Haydock", "Hereford", "Hexham", "Huntingdon", "Kelso", "Kempton", "Kempton (AW)", "Leicester", "Lingfield", "Lingfield (AW)", "Ludlow", "Market Rasen", "Musselburgh", "Newbury", "Newcastle", "Newcastle (AW)", "Newmarket", "Newmarket (July)", "Newton Abbot", "Nottingham", "Perth", "Plumpton", "Pontefract", "Redcar", "Ripon", "Salisbury", "Sandown", "Sedgefield", "Southwell", "Southwell (AW)", "Stratford", "Taunton", "Thirsk", "Towcester", "Uttoxeter", "Warwick", "Wetherby", "Wincanton", "Windsor", "Wolverhampton (AW)", "Worcester", "Yarmouth", "York"],value_source:"csv"},
+    {name:"course_detail",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"enum_select",values:["Fbrs", "Grand National", "Inner", "July", "Mildmay", "New", "Old", "Rnd", "Row", "Str", "Summer", "Winter", "X-Country"],value_source:"csv"},
+    {name:"off",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"text_match"},
+    {name:"race_name",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"text_match"},
+    {name:"type",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"enum_select",values:["Chase", "Flat", "Hurdle", "NH Flat"],value_source:"csv"},
+    {name:"class",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"enum_select",values:["Class 1", "Class 2", "Class 3", "Class 4", "Class 5", "Class 6", "Class 7"],value_source:"csv"},
+    {name:"pattern",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"enum_select",values:["Grade 1", "Grade 2", "Grade 3", "Group 1", "Group 2", "Group 3", "Listed"],value_source:"csv"},
+    {name:"rating_band",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"enum_select",values:["0-100", "0-105", "0-106", "0-110", "0-115", "0-120", "0-125", "0-130", "0-132", "0-135", "0-140", "0-145", "0-150", "0-155", "0-50", "0-52", "0-53", "0-54", "0-55", "0-56", "0-57", "0-58", "0-59", "0-60", "0-61", "0-62", "0-63", "0-64", "0-65", "0-66", "0-67", "0-68", "0-69", "0-70", "0-71", "0-72", "0-73", "0-74", "0-75", "0-76", "0-77", "0-78", "0-79", "0-80", "0-82", "0-83", "0-84", "0-85", "0-87", "0-88", "0-89", "0-90", "0-92", "0-93", "0-95", "0-96", "0-97", "0-98", "45-60", "46-55", "61-75", "70-85"],value_source:"csv"},
+    {name:"age_band",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"enum_select",values:["10yo+", "2-3yo", "2yo", "2yo+", "3-4yo", "3-5yo", "3-6yo", "3-7yo", "3yo", "3yo+", "4-5yo", "4-6yo", "4-7yo", "4-8yo", "4yo", "4yo+", "5-8yo", "5yo+", "6yo+", "7yo+", "8yo+", "9yo+"],value_source:"csv"},
+    {name:"sex_rest",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"enum_select",values:["C & F", "C & G", "F", "F & M", "M"],value_source:"csv"},
+    {name:"dist",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"enum_select",values:["1m", "1m1f", "1m1½f", "1m2f", "1m2½f", "1m3f", "1m3½f", "1m4f", "1m4½f", "1m5f", "1m5½f", "1m6f", "1m6½f", "1m7f", "1m7½f", "1m½f", "2m", "2m1f", "2m1½f", "2m2f", "2m2½f", "2m3f", "2m3½f", "2m4f", "2m4½f", "2m5f", "2m5½f", "2m6f", "2m6½f", "2m7f", "2m7½f", "2m½f", "3m", "3m1f", "3m1½f", "3m2f", "3m2½f", "3m3f", "3m3½f", "3m4f", "3m4½f", "3m5f", "3m5½f", "3m6f", "3m6½f", "3m7f", "3m7½f", "3m½f", "4m", "4m1f", "4m1½f", "4m2f", "4m2½f", "4m½f", "5f", "5½f", "6f", "6½f", "7f", "7½f"],value_source:"csv"},
+    {name:"dist_f",stage:"pre_race",type:"numeric",dtype:"object",selectable:true,coerce:true,note:"object-typed (non-numeric tokens); coerce to numeric.",control:"numeric"},
+    {name:"dist_m",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true,control:"numeric",ops:["<", "≤", "≥", ">", "range"]},
+    {name:"going",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"enum_select",values:["Firm", "Good", "Good To Firm", "Good To Soft", "Heavy", "Slow", "Soft", "Standard", "Standard To Fast", "Standard To Slow"],value_source:"csv"},
+    {name:"surface",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"enum_select",values:["AW", "Turf"],value_source:"csv"},
+    {name:"ran",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true,control:"numeric"},
+    {name:"num",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true,control:"numeric"},
     {name:"pos",stage:"post_race",type:"numeric",dtype:"int64",selectable:false,note:"Finishing position — the outcome itself."},
-    {name:"draw",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
+    {name:"draw",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true,control:"numeric"},
     {name:"ovr_btn",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Beaten distance (overall) — result-derived."},
     {name:"btn",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Beaten distance — result-derived."},
-    {name:"horse",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"age",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true},
-    {name:"sex",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"lbs",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true},
-    {name:"hg",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"horse",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"text_match"},
+    {name:"age",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true,control:"numeric"},
+    {name:"sex",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"enum_select",values:["C", "F", "G", "H", "M", "R"],value_source:"csv"},
+    {name:"lbs",stage:"pre_race",type:"numeric",dtype:"int64",selectable:true,control:"numeric"},
+    {name:"hg",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"enum_select",values:["b", "b1", "bp", "bp1", "e", "e/s", "e/s1", "e/sp", "e/sp1", "e1", "eb", "eb1", "et", "et1", "etb", "etb1", "etp1", "ev1", "h", "h1", "hb", "hb1", "hc1", "he", "he1", "heb", "heb1", "het", "het1", "hetb1", "hp", "hp1", "ht", "ht1", "htb", "htb1", "htp", "htp1", "htv", "htv1", "hv", "hv1", "p", "p1", "t", "t1", "tb", "tb1", "tbp", "tp", "tp1", "tv", "tv1", "tvp", "v", "v1", "vp", "vp1"],value_source:"csv"},
     {name:"time",stage:"post_race",type:"categorical",dtype:"object",selectable:false,note:"Race time — result-derived."},
     {name:"secs",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Race time in seconds — result-derived."},
     {name:"dec",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Industry SP (decimal) — settled at-the-off price; same class as bsp/wap."},
-    {name:"jockey",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"trainer",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"prize",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true},
-    {name:"or",stage:"pre_race",type:"numeric",dtype:"object",selectable:true,coerce:true,note:"Official rating; object-typed (non-numeric tokens); coerce to numeric. Leakage-safe pre-race rating."},
+    {name:"jockey",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"text_match"},
+    {name:"trainer",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"text_match"},
+    {name:"prize",stage:"pre_race",type:"numeric",dtype:"float64",selectable:true,control:"numeric"},
+    {name:"or",stage:"pre_race",type:"numeric",dtype:"object",selectable:true,coerce:true,note:"Official rating; object-typed (non-numeric tokens); coerce to numeric. Leakage-safe pre-race rating.",control:"numeric"},
     {name:"rpr",stage:"post_race",type:"numeric",dtype:"int64",selectable:false,note:"Racing Post Rating — assigned post-race; leakage."},
-    {name:"sire",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"dam",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"damsire",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
-    {name:"owner",stage:"pre_race",type:"categorical",dtype:"object",selectable:true},
+    {name:"sire",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"text_match"},
+    {name:"dam",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"text_match"},
+    {name:"damsire",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"text_match"},
+    {name:"owner",stage:"pre_race",type:"categorical",dtype:"object",selectable:true,control:"text_match"},
     {name:"comment",stage:"post_race",type:"categorical",dtype:"object",selectable:false,note:"In-running closeup describing how the horse actually ran — reads the result (despite run-style-proxy use in Stage-1)."},
     {name:"bsp",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Betfair Starting Price — settled price."},
     {name:"pre_min",stage:"post_race",type:"numeric",dtype:"float64",selectable:false,note:"Pre-off price aggregate — settled market data."},
@@ -311,19 +328,19 @@ const MANIFEST = {
     {name:"wap_valid",stage:"post_race",type:"flag",dtype:"int64",selectable:false,note:"Validity flag on post-race WAP pricing."}
   ],
   derived_features: [
-    {name:"career_wins",type:"numeric",selectable:true,stage:"derived",source_columns:["horse","pos"],description:"Count of the horse's prior runs finishing pos==1 (touches pos)."},
-    {name:"career_runs",type:"numeric",selectable:true,stage:"derived",source_columns:["horse"],description:"Count of the horse's prior runs in history."},
-    {name:"won_course_flag",type:"flag",selectable:true,stage:"derived",source_columns:["course","horse","pos"],description:"Horse has previously won at this course (pos==1)."},
-    {name:"won_dist_flag",type:"flag",selectable:true,stage:"derived",source_columns:["dist_f","horse","pos"],description:"Horse has previously won at this distance (pos==1)."},
-    {name:"won_cd_flag",type:"flag",selectable:true,stage:"derived",source_columns:["course","dist_f","horse","pos"],description:"Horse has previously won at this course-and-distance (pos==1)."},
-    {name:"class_change",type:"categorical",selectable:true,stage:"derived",source_columns:["class"],categories:["up","same","down"],description:"Class move vs the horse's previous run."},
-    {name:"or_trajectory",type:"numeric",selectable:true,stage:"derived",source_columns:["or"],description:"Official-rating trend vs the prior 3 runs (delta/slope)."},
-    {name:"hcap_transition",type:"categorical",selectable:true,stage:"derived",source_columns:["type","rating_band"],description:"Handicap transition vs prior (e.g. non-hcap->hcap, band shift)."},
-    {name:"going_suit",type:"numeric",selectable:true,stage:"derived",source_columns:["going","pos"],description:"Horse's prior win/place rate on today's going."},
-    {name:"sire_going_profile",type:"numeric",selectable:true,stage:"derived",source_columns:["sire","going","pos"],description:"Sire progeny win/place rate on today's going (prior runs)."},
-    {name:"sire_dist_profile",type:"numeric",selectable:true,stage:"derived",source_columns:["sire","dist_f","pos"],description:"Sire progeny win/place rate at today's distance (prior runs)."},
-    {name:"first_time_hg",type:"flag",selectable:true,stage:"derived",source_columns:["hg"],description:"Headgear applied for the first time vs the horse's history."},
-    {name:"run_style_proxy",type:"categorical",selectable:true,stage:"derived",source_columns:["comment"],categories:["led","prominent","midfield","held_up"],description:"Run-style parsed from PRIOR-run comments only."}
+    {name:"career_wins",type:"numeric",selectable:true,stage:"derived",source_columns:["horse","pos"],description:"Count of the horse's prior runs finishing pos==1 (touches pos).",control:"numeric"},
+    {name:"career_runs",type:"numeric",selectable:true,stage:"derived",source_columns:["horse"],description:"Count of the horse's prior runs in history.",control:"numeric"},
+    {name:"won_course_flag",type:"flag",selectable:true,stage:"derived",source_columns:["course","horse","pos"],description:"Horse has previously won at this course (pos==1).",control:"flag"},
+    {name:"won_dist_flag",type:"flag",selectable:true,stage:"derived",source_columns:["dist_f","horse","pos"],description:"Horse has previously won at this distance (pos==1).",control:"flag"},
+    {name:"won_cd_flag",type:"flag",selectable:true,stage:"derived",source_columns:["course","dist_f","horse","pos"],description:"Horse has previously won at this course-and-distance (pos==1).",control:"flag"},
+    {name:"class_change",type:"categorical",selectable:true,stage:"derived",source_columns:["class"],categories:["up","same","down"],description:"Class move vs the horse's previous run.",control:"enum_select",values:["up", "same", "down"],value_source:"definition"},
+    {name:"or_trajectory",type:"numeric",selectable:true,stage:"derived",source_columns:["or"],description:"Official-rating trend vs the prior 3 runs (delta/slope).",control:"numeric"},
+    {name:"hcap_transition",type:"categorical",selectable:true,stage:"derived",source_columns:["type","rating_band"],description:"Handicap transition vs prior (e.g. non-hcap->hcap, band shift).",control:"enum_select",values:[],value_source:"pending"},
+    {name:"going_suit",type:"numeric",selectable:true,stage:"derived",source_columns:["going","pos"],description:"Horse's prior win/place rate on today's going.",control:"numeric"},
+    {name:"sire_going_profile",type:"numeric",selectable:true,stage:"derived",source_columns:["sire","going","pos"],description:"Sire progeny win/place rate on today's going (prior runs).",control:"numeric"},
+    {name:"sire_dist_profile",type:"numeric",selectable:true,stage:"derived",source_columns:["sire","dist_f","pos"],description:"Sire progeny win/place rate at today's distance (prior runs).",control:"numeric"},
+    {name:"first_time_hg",type:"flag",selectable:true,stage:"derived",source_columns:["hg"],description:"Headgear applied for the first time vs the horse's history.",control:"flag"},
+    {name:"run_style_proxy",type:"categorical",selectable:true,stage:"derived",source_columns:["comment"],categories:["led","prominent","midfield","held_up"],description:"Run-style parsed from PRIOR-run comments only.",control:"enum_select",values:["led", "prominent", "midfield", "held_up"],value_source:"definition"}
   ],
   pending_acquisition: [
     {name:"weather",blocker:"Open-Meteo join not built — needs a ~60-course lat/long table.",cost:"easy / free"},
@@ -391,7 +408,7 @@ function renderFields(){
   host.innerHTML = '';
   const match = f => f.name.toLowerCase().includes(q);
 
-  const pre = MANIFEST.fields.filter(f=>f.stage==='pre_race' && match(f));
+  const pre = MANIFEST.fields.filter(f=>f.stage==='pre_race' && f.control!=='constant' && match(f));
   const der = MANIFEST.derived_features.filter(match);
   const post = MANIFEST.fields.filter(f=>f.stage==='post_race' && match(f));
 
@@ -416,6 +433,7 @@ function group(title, badgeCls, sub, list, groupKey){
 /* ---------- step 2: condition builder ---------- */
 function chooseField(f, group){
   selected = Object.assign({}, f, {group});
+  selected._enumSel = new Set(); selected._enumOne = null;   // reset enum picker state
   document.getElementById('c-name').textContent = f.name;
 
   // badges
@@ -443,9 +461,14 @@ function chooseField(f, group){
   go(2);
 }
 
+/* control = how the value is entered; falls back to legacy type for any field
+   that predates the audit (numeric/flag/else->text). */
+function controlOf(f){ return f.control || (f.type==='flag'?'flag':f.type==='numeric'?'numeric':'text_match'); }
+
 function buildControls(f){
   const host = document.getElementById('c-controls');
-  const ops = MANIFEST.operators[f.type];
+  const control = controlOf(f);
+  const ops = f.ops || MANIFEST.operators[control] || MANIFEST.operators[f.type];
   let html = `<div><label class="fld">Operator</label>
     <select id="op" onchange="onOpChange()">${ops.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
   html += `<div id="valwrap"></div>`;
@@ -457,14 +480,37 @@ function onOpChange(){
   const f = selected;
   const op = document.getElementById('op').value;
   const w = document.getElementById('valwrap');
-  if(f.type==='flag'){ w.innerHTML=''; return; }          // op IS the value (true/false)
-  if(f.type==='categorical'){
-    const ph = op==='in' ? 'value1, value2, value3…' : 'value';
-    const list = f.categories ? `<datalist id="cats">${f.categories.map(c=>`<option value="${c}">`).join('')}</datalist>` : '';
-    w.innerHTML = `<div><label class="fld">${op==='in'?'Values (comma-separated)':'Value'}</label>
-      <input type="text" id="v1" list="${f.categories?'cats':''}" placeholder="${ph}" style="min-width:220px">${list}</div>`;
+  const control = controlOf(f);
+
+  if(control==='flag'){ w.innerHTML=''; return; }          // op IS the value (true/false)
+
+  if(control==='enum_select'){                              // dropdown from real CSV values
+    w.innerHTML = enumControlHTML(f, op);
+    renderEnumList();
     return;
   }
+
+  if(control==='date'){                                     // date-picker, visually distinct from the split cutoff
+    const cap = `<div class="dr-cap">📅 race-date filter · selection rule — not the discovery/holdout split</div>`;
+    if(op==='range'){
+      w.innerHTML = `<div class="daterule">${cap}
+        <label class="fld">From (on/after)</label><input type="date" id="v1">
+        <label class="fld" style="margin-top:8px">To (on/before)</label><input type="date" id="v2"></div>`;
+    } else {
+      w.innerHTML = `<div class="daterule">${cap}
+        <label class="fld">Date (${op})</label><input type="date" id="v1"></div>`;
+    }
+    return;
+  }
+
+  if(control==='text_match'){                               // high-cardinality free text -> typed, exact match
+    const ph = op==='in' ? 'value1, value2, value3…' : 'text to match';
+    w.innerHTML = `<div><label class="fld">${op==='in'?'Values (comma-separated)':'Value'}</label>
+      <input type="text" id="v1" placeholder="${ph}" style="min-width:240px"></div>
+      <div class="hint" style="flex-basis:100%">Exact match — high-cardinality free text, no fixed list to choose from.</div>`;
+    return;
+  }
+
   // numeric
   if(op==='range'){
     w.innerHTML = `<div><label class="fld">Min (≥)</label><input type="number" id="v1" step="any" style="width:120px"></div>
@@ -474,19 +520,81 @@ function onOpChange(){
   }
 }
 
+/* ---- enum_select picker: searchable list, single ("is") or multi ("in") ---- */
+function enumControlHTML(f, op){
+  const searchable = (f.values||[]).length > 12;
+  let h = `<div class="enumwrap"><label class="fld">${op==='in'?'Values — pick one or more':'Value — pick one'}</label>`;
+  if(searchable) h += `<input class="search" id="enumsearch" placeholder="Search ${(f.values||[]).length} values…"
+    oninput="renderEnumList()" style="margin-bottom:6px">`;
+  h += `<div class="enumlist" id="enumlist"></div><div class="enumcount" id="enumcount"></div></div>`;
+  return h;
+}
+function renderEnumList(){
+  const f = selected, op = document.getElementById('op').value;
+  const list = document.getElementById('enumlist'); if(!list) return;
+  const se = document.getElementById('enumsearch');
+  const q = (se ? se.value : '').toLowerCase();
+  const rows = (f.values||[]).map((v,i)=>({v,i})).filter(o=>String(o.v).toLowerCase().includes(q));
+  list.innerHTML = rows.length
+    ? rows.map(o=>{
+        const sel = op==='in' ? selected._enumSel.has(o.v) : selected._enumOne===o.v;
+        return `<div class="enopt${sel?' on':''}" onclick="toggleEnumIdx(${o.i})">${esc(o.v)}</div>`;
+      }).join('')
+    : `<div class="hint" style="padding:8px 11px">— no match —</div>`;
+  const cnt = document.getElementById('enumcount');
+  if(cnt) cnt.textContent = op==='in'
+    ? `${selected._enumSel.size} selected of ${(f.values||[]).length}`
+    : (selected._enumOne ? `selected: ${selected._enumOne}` : `${(f.values||[]).length} options`);
+}
+function toggleEnumIdx(i){
+  const f = selected, op = document.getElementById('op').value, v = f.values[i];
+  if(op==='in'){ selected._enumSel.has(v) ? selected._enumSel.delete(v) : selected._enumSel.add(v); }
+  else { selected._enumOne = (selected._enumOne===v ? null : v); }
+  renderEnumList();
+}
+
 function addRule(){
   const f = selected, op = document.getElementById('op').value;
   const err = document.getElementById('c-err'); err.textContent='';
-  let value;
+  const control = controlOf(f);
+  let value, serType = f.type, serOp = op;
 
-  if(f.type==='flag'){
-    value = (op==='true');
-  } else if(f.type==='categorical'){
+  if(control==='flag'){
+    value = (op==='true'); serType='flag';
+
+  } else if(control==='enum_select'){                       // serialize as categorical for the bridge
+    serType='categorical';
+    if(op==='in'){
+      value = Array.from(selected._enumSel);
+      if(!value.length){ err.textContent='Pick at least one value.'; return; }
+    } else {
+      if(!selected._enumOne){ err.textContent='Pick a value.'; return; }
+      value = selected._enumOne;
+    }
+
+  } else if(control==='text_match'){                        // typed free text -> categorical is/in
+    serType='categorical';
     const raw = (document.getElementById('v1').value||'').trim();
     if(!raw){ err.textContent='Enter a value.'; return; }
     value = op==='in' ? raw.split(',').map(s=>s.trim()).filter(Boolean) : raw;
     if(op==='in' && value.length<1){ err.textContent='Enter at least one value.'; return; }
+
+  } else if(control==='date'){                              // dedicated date type; ISO compares lexically
+    serType='date';
+    serOp = ({on:'=',before:'<',after:'>',range:'range'})[op] || op;
+    if(op==='range'){
+      const a=document.getElementById('v1').value, b=document.getElementById('v2').value;
+      if(!a||!b){ err.textContent='Enter both dates.'; return; }
+      if(a>b){ err.textContent='From must be ≤ To.'; return; }
+      value=[a,b];
+    } else {
+      const a=document.getElementById('v1').value;
+      if(!a){ err.textContent='Pick a date.'; return; }
+      value=a;
+    }
+
   } else { // numeric
+    serType='numeric';
     if(op==='range'){
       const a=document.getElementById('v1').value, b=document.getElementById('v2').value;
       if(a===''||b===''){ err.textContent='Enter both min and max.'; return; }
@@ -502,8 +610,8 @@ function addRule(){
 
   const rule = {
     id:nodeSeq++, kind:'rule',
-    field:f.name, group:f.group, type:f.type, dtype:f.dtype||null,
-    op, value,
+    field:f.name, group:f.group, type:serType, dtype:f.dtype||null,
+    op:serOp, value,
     coerce:!!f.coerce,
     source_columns:f.source_columns||[f.name],
     leakage_note: f.group==='derived' ? MANIFEST.derived_leakage_note : undefined
@@ -517,6 +625,11 @@ function addRule(){
 function ruleExpr(r){
   const v = r.value;
   if(r.type==='flag') return `${r.field} is ${v}`;
+  if(r.type==='date'){
+    if(r.op==='range') return `${r.field} in ${v[0]} … ${v[1]}`;
+    const word = ({'=':'on','<':'before','>':'after'})[r.op] || r.op;
+    return `${r.field} ${word} ${v}`;
+  }
   if(r.type==='categorical'){
     if(r.op==='in') return `${r.field} in [${v.map(x=>'"'+x+'"').join(', ')}]`;
     return `${r.field} is "${v}"`;
@@ -800,7 +913,7 @@ function renderRoadmap(){
 function init(){
   document.getElementById('src').textContent = MANIFEST.source_csv;
   document.getElementById('colcount').textContent = MANIFEST.n_columns;
-  document.getElementById('n-pre').textContent  = MANIFEST.fields.filter(f=>f.stage==='pre_race').length;
+  document.getElementById('n-pre').textContent  = MANIFEST.fields.filter(f=>f.stage==='pre_race' && f.control!=='constant').length;
   document.getElementById('n-der').textContent  = MANIFEST.derived_features.length;
   document.getElementById('n-post').textContent = MANIFEST.fields.filter(f=>f.stage==='post_race').length;
   renderRoadmap();
