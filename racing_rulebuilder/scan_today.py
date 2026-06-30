@@ -37,7 +37,9 @@ import datetime
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_HERE)
 sys.path.insert(0, _HERE)
+sys.path.insert(0, os.path.join(_ROOT, "features"))
 import run_strategy as rs        # reuse the EXACT filter + leakage machinery
+import history_join as hj        # the SHARED Layer-2 history-join engine (Tier 2)
 
 # Standard places rpscrape / this tool may drop the daily card file.
 CARD_DIRS = [
@@ -135,27 +137,35 @@ def _runner_rows(card):
 
 
 def scan(strategy, cards):
-    """Apply the rule to a {region:{course:{off: racecard}}} structure."""
+    """Apply the rule to a {region:{course:{off: racecard}}} structure.
+
+    Tier 2: derived Layer-2 features (history join) are now COMPUTED for each card
+    runner via the shared engine and merged into its selection-input row, so
+    interaction rules referencing them scan live. Today's runners get their
+    STRICTLY-PRIOR features (all history is before today). Post-race card columns
+    remain forbidden (the race has not run)."""
     rules = strategy.get("selection_rules") or {"combinator": "all", "children": []}
-    post_race, derived = rs.load_manifest_sets()
+    post_race, _derived = rs.load_manifest_sets()
+    # Layer-2 derived features are materialisable from history -> allowed as
+    # selection inputs on cards too (no longer "unsupported"). _n counts included.
+    allowed = CARD_COLUMNS | set(hj.LAYER2_FIELDS)
     referenced = rs._collect_fields(rules, set())
-    fc = rs.check_fields(referenced, CARD_COLUMNS, post_race, derived)
+    fc = rs.check_fields(referenced, allowed, post_race, set())
 
     res = {"ok": False, "field_check": fc, "errors": []}
     if fc["leakage"]:
         res["errors"].append(
             "post-race column(s) referenced -- these do NOT exist on a racecard "
             "(the race has not run): " + ", ".join(fc["leakage"]))
-    if fc["unsupported_derived"]:
-        res["errors"].append(
-            "derived feature(s) not available on racecards: "
-            + ", ".join(fc["unsupported_derived"]))
     if fc["unknown"]:
         res["errors"].append(
             "column(s) not produced from racecards (e.g. sex_rest, or a typo): "
             + ", ".join(fc["unknown"]))
     if res["errors"]:
         return res
+
+    uses_layer2 = bool(referenced & set(hj.LAYER2_FIELDS))
+    index = hj.get_index(rs.BASE_CSV) if uses_layer2 else None
 
     races = []
     n_races = n_qual = n_excluded = 0
@@ -165,6 +175,9 @@ def scan(strategy, cards):
                 n_races += 1
                 rows, excluded = _runner_rows(card)
                 n_excluded += excluded
+                if index is not None:
+                    for inp, _disp in rows:
+                        inp.update(hj.named_features(index, hj.ctx_from_row(inp)))
                 quals = [disp for inp, disp in rows if rs._eval_node(rules, inp)]
                 if quals:
                     n_qual += len(quals)

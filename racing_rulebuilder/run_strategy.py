@@ -43,11 +43,20 @@ import argparse
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_HERE)
 sys.path.insert(0, os.path.join(_ROOT, "backtest"))
+sys.path.insert(0, os.path.join(_ROOT, "features"))
 import clv  # noqa: E402  -- the project's CLV harness; we call its pure functions
+import history_join as hj  # noqa: E402  -- the SHARED Layer-2 history-join engine
 
 csv.field_size_limit(1 << 24)
 
-DEFAULT_CSV = os.path.join(_ROOT, "data", "joined", "joined_gb_2018_2026.csv")
+# Base joined set vs the Layer-2 materialised set. The bridge prefers the hist
+# CSV (base + strictly-prior derived columns from features/build_history.py) so a
+# rule on a derived feature finds a REAL column and returns results. Falls back to
+# the base set if the hist file hasn't been built yet. The history INDEX (runner
+# view / scanner Tier 2) is always built from the BASE set (raw history).
+BASE_CSV = os.path.join(_ROOT, "data", "joined", "joined_gb_2018_2026.csv")
+HIST_CSV = os.path.join(_ROOT, "data", "joined", "joined_gb_2018_2026_hist.csv")
+DEFAULT_CSV = HIST_CSV if os.path.exists(HIST_CSV) else BASE_CSV
 MANIFEST = os.path.join(_HERE, "field_manifest.json")
 STAGE1_SCORED = os.path.join(_ROOT, "models", "stage1_scored.csv")
 DEFAULT_STRUCK_COL = "wap"          # struck price convention (STRUCK_MODE=wap)
@@ -775,7 +784,22 @@ def races_endpoint(req):
 # --------------------------------------------------------------------------- #
 RUNNER_SELECTION_COLS = ["num", "draw", "horse", "age", "sex", "lbs", "or", "hg", "form"]
 RUNNER_DISPLAY_COLS = ["position", "bsp"]      # post-race; winning_time is race-level
-RUNNER_LAYER2_COLS = ["or_trajectory", "class_change", "cd_flags", "dslr", "win_pct", "place_pct"]
+# Layer 2 (history join) -- now ACTIVE via the shared engine. Each value ships
+# with its sample count <name>_n so thin stats are visible.
+RUNNER_LAYER2_COLS = [
+    "career_runs", "career_win_pct", "career_place_pct", "or_trajectory",
+    "class_change", "dslr", "won_course_flag", "won_dist_flag", "won_cd_flag",
+    "run_style_proxy", "trainer_course_sr", "trainer_class_sr", "trainer_going_sr",
+    "jockey_trainer_combo_sr",
+]
+
+
+def _history_for(inp_row):
+    """Per-runner Layer-2 features from the SHARED strictly-prior join (same engine
+    the rule builder + scanner use). `inp_row` carries the pre-race fields
+    ctx_from_row needs (date, course, dist_f, or, class, going, horse, jockey,
+    trainer)."""
+    return hj.named_features(hj.get_index(BASE_CSV), hj.ctx_from_row(inp_row))
 
 
 def _intkey(v):
@@ -790,7 +814,7 @@ def _runner_view_meta(extra):
     base = {"selection_columns": RUNNER_SELECTION_COLS,
             "display_columns": RUNNER_DISPLAY_COLS,
             "layer2_columns": RUNNER_LAYER2_COLS,
-            "layer2_status": "pending"}
+            "layer2_status": "active"}
     base.update(extra)
     return base
 
@@ -817,7 +841,7 @@ def _runners_from_cards(cards, key, date_str, path):
                         "form": disp.get("form"), "jockey": disp.get("jockey"),
                         "trainer": disp.get("trainer"),
                         "display_only": {"position": None, "bsp": None},   # race not run
-                        "history": None,                                   # Layer 2 pending
+                        "history": _history_for(inp),   # Layer 2: strictly-prior shared join
                     })
                 runners.sort(key=lambda x: _intkey(x.get("num")))
                 return _runner_view_meta({
@@ -860,7 +884,7 @@ def _runners_from_csv(src, key, date_str):
             "or": r.get("or"), "hg": r.get("hg"), "form": None,   # no form col in joined set
             "jockey": r.get("jockey"), "trainer": r.get("trainer"),
             "display_only": {"position": pos, "bsp": clv._fnum(r.get("bsp"))},
-            "history": None,                                       # Layer 2 pending
+            "history": _history_for(r),     # Layer 2: strictly-prior shared join
         })
     runners.sort(key=lambda x: _intkey(x.get("num")))
     r0 = rows[0]

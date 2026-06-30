@@ -27,8 +27,15 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import history_join as hj  # noqa: E402
 
+# CONTINUOUS / strike-rate features -> within-race rank correlation is the right
+# lens (anchored to or/rpr). Binary flags are handled separately by strike-rate:
+# a 0/1 column with heavy ties produces a meaningless inflated rank rho (a tie
+# artifact, like the weather neg_log_vis +0.9998), so flags must be cleared by
+# "does flag=1 spike today's win rate to ~100% (leak) or lift it modestly (clean)".
 FEATURES = ["career_win_pct", "career_place_pct", "or_trajectory", "dslr",
-            "won_cd_flag"]
+            "trainer_course_sr", "trainer_class_sr", "trainer_going_sr",
+            "jockey_trainer_combo_sr"]
+FLAGS = ["won_course_flag", "won_dist_flag", "won_cd_flag"]
 
 
 def _spearman(xs, ys):
@@ -42,18 +49,35 @@ def _spearman(xs, ys):
     return float((rx * ry).sum() / d) if d > 0 else None
 
 
-def anchor_test(csv_path=hj.DEFAULT_CSV):
-    # collect per-race (pos, feature-values, or) for finishers only
+def statistical_proof(csv_path=hj.DEFAULT_CSV):
+    """ONE pass over the data -> the three statistical leakage checks:
+      (1)  within-race rank correlation vs finish for continuous/SR features
+      (1a) strike-rate clearance for the binary won_* flags
+      (1b) strike-rate by prior dominant run-style
+    """
+    from collections import Counter
     by_race = defaultdict(list)
+    fw1 = Counter(); ft1 = Counter(); fw0 = Counter(); ft0 = Counter()
+    rw = Counter(); rt = Counter()
     for r, feats in hj.iter_row_features(csv_path):
         pos = hj.parse_pos(r.get("pos"))
         if pos is None:
-            continue  # within-race rank needs a finishing position
+            continue  # within-race rank / strike rate need a finishing position
+        won = pos == 1
         rid = f"{r['date']}|{r.get('course')}|{r.get('off')}"
         rec = {"pos": pos, "or": hj.fnum(r.get("or"))}
         for f in FEATURES:
             rec[f] = feats.get(f)
         by_race[rid].append(rec)
+        for f in FLAGS:
+            v = feats.get(f)
+            if v == 1:
+                ft1[f] += 1; fw1[f] += won
+            elif v == 0:
+                ft0[f] += 1; fw0[f] += won
+        st = feats.get("run_style")
+        if st is not None:
+            rt[st] += 1; rw[st] += won
 
     cols = ["or"] + FEATURES
     sums = {c: [] for c in cols}
@@ -89,6 +113,19 @@ def anchor_test(csv_path=hj.DEFAULT_CSV):
         else:
             verdict = "ok (pre-race band)"
         print(f"  {c:<20}{m:>+10.4f}{len(arr):>9}   {verdict}")
+
+    print("\n(1a) BINARY won_* FLAGS -> today win rate (leak would push flag=1 ~100%)")
+    print(f"  {'flag':<18}{'flag=1 n':>10}{'win|1':>9}{'flag=0 n':>11}{'win|0':>9}   verdict")
+    for f in FLAGS:
+        r1 = (fw1[f] / ft1[f]) if ft1[f] else float("nan")
+        r0 = (fw0[f] / ft0[f]) if ft0[f] else float("nan")
+        v = "*** LEAK ***" if (r1 == r1 and r1 > 0.5) else "ok (modest lift)"
+        print(f"  {f:<18}{ft1[f]:>10}{r1:>9.2%}{ft0[f]:>11}{r0:>9.2%}   {v}")
+
+    print("\n(1b) RUN-STYLE (prior comments) -> today win rate (leak would be ~100%)")
+    for st in ("led", "prominent", "midfield", "held_up"):
+        if rt[st]:
+            print(f"  {st:<12} n={rt[st]:7d}  today-win-rate={rw[st]/rt[st]:.3%}")
     return sums
 
 
@@ -136,5 +173,5 @@ def invariance_test(csv_path=hj.DEFAULT_CSV, n_check=300):
 
 
 if __name__ == "__main__":
-    anchor_test()
+    statistical_proof()
     invariance_test()

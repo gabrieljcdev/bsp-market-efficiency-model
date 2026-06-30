@@ -256,19 +256,26 @@ const MANIFEST = {
     {name:"wap_valid",stage:"post_race",type:"flag",dtype:"int64",selectable:false,note:"Validity flag on post-race WAP."}
   ],
   derived_features: [
-    {name:"career_wins",type:"numeric",selectable:true,stage:"derived",source_columns:["horse","pos"],control:"numeric"},
-    {name:"career_runs",type:"numeric",selectable:true,stage:"derived",source_columns:["horse"],control:"numeric"},
-    {name:"won_course_flag",type:"flag",selectable:true,stage:"derived",source_columns:["course","horse","pos"],control:"flag"},
-    {name:"won_dist_flag",type:"flag",selectable:true,stage:"derived",source_columns:["dist_f","horse","pos"],control:"flag"},
-    {name:"won_cd_flag",type:"flag",selectable:true,stage:"derived",source_columns:["course","dist_f","horse","pos"],control:"flag"},
-    {name:"class_change",type:"categorical",selectable:true,stage:"derived",source_columns:["class"],categories:["up","same","down"],control:"enum_select",values:["up", "same", "down"],value_source:"definition"},
-    {name:"or_trajectory",type:"numeric",selectable:true,stage:"derived",source_columns:["or"],control:"numeric"},
-    {name:"hcap_transition",type:"categorical",selectable:true,stage:"derived",source_columns:["type","rating_band"],control:"enum_select",values:[],value_source:"pending"},
-    {name:"going_suit",type:"numeric",selectable:true,stage:"derived",source_columns:["going","pos"],control:"numeric"},
-    {name:"sire_going_profile",type:"numeric",selectable:true,stage:"derived",source_columns:["sire","going","pos"],control:"numeric"},
-    {name:"sire_dist_profile",type:"numeric",selectable:true,stage:"derived",source_columns:["sire","dist_f","pos"],control:"numeric"},
-    {name:"first_time_hg",type:"flag",selectable:true,stage:"derived",source_columns:["hg"],control:"flag"},
-    {name:"run_style_proxy",type:"categorical",selectable:true,stage:"derived",source_columns:["comment"],categories:["led","prominent","midfield","held_up"],control:"enum_select",values:["led", "prominent", "midfield", "held_up"],value_source:"definition"}
+    {name:"career_runs",type:"numeric",selectable:true,materialised:true,stage:"derived",source_columns:["horse"],control:"numeric"},
+    {name:"career_win_pct",type:"numeric",selectable:true,materialised:true,stage:"derived",source_columns:["horse","pos"],control:"numeric"},
+    {name:"career_place_pct",type:"numeric",selectable:true,materialised:true,stage:"derived",source_columns:["horse","pos"],control:"numeric"},
+    {name:"won_course_flag",type:"flag",selectable:true,materialised:true,stage:"derived",source_columns:["course","horse","pos"],control:"flag"},
+    {name:"won_dist_flag",type:"flag",selectable:true,materialised:true,stage:"derived",source_columns:["dist_f","horse","pos"],control:"flag"},
+    {name:"won_cd_flag",type:"flag",selectable:true,materialised:true,stage:"derived",source_columns:["course","dist_f","horse","pos"],control:"flag"},
+    {name:"class_change",type:"categorical",selectable:true,materialised:true,stage:"derived",source_columns:["class"],categories:["up","same","down"],control:"enum_select",values:["up", "same", "down"],value_source:"definition"},
+    {name:"or_trajectory",type:"numeric",selectable:true,materialised:true,stage:"derived",source_columns:["or"],control:"numeric"},
+    {name:"dslr",type:"numeric",selectable:true,materialised:true,stage:"derived",source_columns:["date"],control:"numeric"},
+    {name:"run_style_proxy",type:"categorical",selectable:true,materialised:true,stage:"derived",source_columns:["comment"],categories:["led","prominent","midfield","held_up"],control:"enum_select",values:["led", "prominent", "midfield", "held_up"],value_source:"definition"},
+    {name:"trainer_course_sr",type:"numeric",selectable:true,materialised:true,stage:"derived",source_columns:["trainer","course","pos"],control:"numeric"},
+    {name:"trainer_class_sr",type:"numeric",selectable:true,materialised:true,stage:"derived",source_columns:["trainer","class","pos"],control:"numeric"},
+    {name:"trainer_going_sr",type:"numeric",selectable:true,materialised:true,stage:"derived",source_columns:["trainer","going","pos"],control:"numeric"},
+    {name:"jockey_trainer_combo_sr",type:"numeric",selectable:true,materialised:true,stage:"derived",source_columns:["jockey","trainer","pos"],control:"numeric"},
+    {name:"career_wins",type:"numeric",selectable:true,materialised:false,stage:"derived",source_columns:["horse","pos"],control:"numeric"},
+    {name:"hcap_transition",type:"categorical",selectable:true,materialised:false,stage:"derived",source_columns:["type","rating_band"],control:"enum_select",values:[],value_source:"pending"},
+    {name:"going_suit",type:"numeric",selectable:true,materialised:false,stage:"derived",source_columns:["going","pos"],control:"numeric"},
+    {name:"sire_going_profile",type:"numeric",selectable:true,materialised:false,stage:"derived",source_columns:["sire","going","pos"],control:"numeric"},
+    {name:"sire_dist_profile",type:"numeric",selectable:true,materialised:false,stage:"derived",source_columns:["sire","dist_f","pos"],control:"numeric"},
+    {name:"first_time_hg",type:"flag",selectable:true,materialised:false,stage:"derived",source_columns:["hg"],control:"flag"}
   ]
 };
 
