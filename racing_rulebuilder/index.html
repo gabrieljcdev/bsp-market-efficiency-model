@@ -349,6 +349,16 @@ const MANIFEST = {
     {name:"sire_dist_profile",type:"numeric",selectable:true,materialised:false,stage:"derived",source_columns:["sire","dist_f","pos"],description:"Sire progeny win/place rate at today's distance (not yet materialised).",control:"numeric"},
     {name:"first_time_hg",type:"flag",selectable:true,materialised:false,stage:"derived",source_columns:["hg"],description:"Headgear applied for the first time (not yet materialised).",control:"flag"}
   ],
+  geometry_note: "Static track facts joined on course name (data/reference/course_geometry.csv). They describe the TRACK, not the result — pre-race, leakage-safe. Tier 1 is published & selectable; Tier 2 (character/undulation/uphill) is PROPOSED & UNVERIFIED — not selectable until confirmed.",
+  course_geometry: [
+    {name:"handedness",type:"categorical",selectable:true,materialised:true,stage:"pre_race",tier:1,verified:true,source_columns:["course"],description:"Direction of the track.",control:"enum_select",values:["Left", "Right", "Figure-of-eight"],value_source:"definition"},
+    {name:"course_shape",type:"categorical",selectable:true,materialised:true,stage:"pre_race",tier:1,verified:true,source_columns:["course"],description:"Circuit shape.",control:"enum_select",values:["Oval", "Triangular", "Horseshoe", "Pear", "Round", "Figure-of-eight"],value_source:"definition"},
+    {name:"circumference_f",type:"numeric",selectable:true,materialised:true,stage:"pre_race",tier:1,verified:true,source_columns:["course"],description:"Round-course length in furlongs (approx published figure).",control:"numeric"},
+    {name:"run_in_y",type:"numeric",selectable:true,materialised:true,stage:"pre_race",tier:1,verified:true,source_columns:["course"],description:"Run-in length in yards where known (mostly blank).",control:"numeric"},
+    {name:"course_character",type:"categorical",selectable:false,materialised:true,stage:"pre_race",tier:2,verified:false,warn:"unverified",source_columns:["course"],description:"PROPOSED / UNVERIFIED — track character (Galloping / Sharp / Stiff). Confirm before enabling.",control:"enum_select",values:["Galloping", "Sharp", "Stiff"],value_source:"definition",note:"Tier-2 unverified — confirm before enabling."},
+    {name:"undulation",type:"categorical",selectable:false,materialised:true,stage:"pre_race",tier:2,verified:false,warn:"unverified",source_columns:["course"],description:"PROPOSED / UNVERIFIED — gradient profile (Flat / Undulating). Confirm before enabling.",control:"enum_select",values:["Flat", "Undulating"],value_source:"definition",note:"Tier-2 unverified — confirm before enabling."},
+    {name:"uphill_finish",type:"categorical",selectable:false,materialised:true,stage:"pre_race",tier:2,verified:false,warn:"unverified",source_columns:["course"],description:"PROPOSED / UNVERIFIED — uphill finish (Yes / No). Confirm before enabling.",control:"enum_select",values:["Yes", "No"],value_source:"definition",note:"Tier-2 unverified — confirm before enabling."}
+  ],
   pending_acquisition: [
     {name:"weather",blocker:"Open-Meteo join not built — needs a ~60-course lat/long table.",cost:"easy / free"},
     {name:"going_vs_forecast",blocker:"Derived once weather is joined.",cost:"depends: weather"},
@@ -402,10 +412,11 @@ function fieldChip(f, group){
   div.className = 'f' + (group==='derived'?' der':'') + (disabled?' disabled':'');
   let inner = `<span>${f.name}</span><span class="ty">${f.type}</span>`;
   if(f.coerce) inner += `<span class="badge coerce" title="${f.note||''}">coerce→num</span>`;
-  if(disabled) inner += `<span class="warn" title="${f.note||'post-race / leakage'}">⚠ leakage</span>`;
+  const warnLabel = f.warn || 'leakage';     // geometry Tier-2 -> 'unverified', else post-race leakage
+  if(disabled) inner += `<span class="warn" title="${f.note||'post-race / leakage'}">⚠ ${warnLabel}</span>`;
   div.innerHTML = inner;
   if(!disabled) div.onclick = ()=>chooseField(f, group);
-  else div.title = (f.note||'') + ' (post-race — not selectable)';
+  else div.title = (f.note||'') + (f.warn==='unverified' ? ' (Tier-2 unverified — not selectable)' : ' (post-race — not selectable)');
   return div;
 }
 
@@ -417,10 +428,12 @@ function renderFields(){
 
   const pre = MANIFEST.fields.filter(f=>f.stage==='pre_race' && f.control!=='constant' && match(f));
   const der = MANIFEST.derived_features.filter(match);
+  const geo = (MANIFEST.course_geometry||[]).filter(match);
   const post = MANIFEST.fields.filter(f=>f.stage==='post_race' && match(f));
 
   host.appendChild(group('Pre-race', 'pre', 'Known before the off — leakage-safe.', pre, 'pre'));
   host.appendChild(group('Derived (prior-run)', 'der', MANIFEST.derived_leakage_note, der, 'derived'));
+  host.appendChild(group('Course geometry (track reference)', 'pre', MANIFEST.geometry_note||'Static track facts joined on course name.', geo, 'geometry'));
   host.appendChild(group('Post-race — disabled', 'post', 'Result / settled-market columns. Shown for reference; cannot be selected.', post, 'post'));
 }
 

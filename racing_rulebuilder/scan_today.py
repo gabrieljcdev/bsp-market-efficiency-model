@@ -145,18 +145,22 @@ def scan(strategy, cards):
     STRICTLY-PRIOR features (all history is before today). Post-race card columns
     remain forbidden (the race has not run)."""
     rules = strategy.get("selection_rules") or {"combinator": "all", "children": []}
-    post_race, _derived = rs.load_manifest_sets()
+    post_race, _derived, unverified = rs.load_manifest_sets()
     # Layer-2 derived features are materialisable from history -> allowed as
     # selection inputs on cards too (no longer "unsupported"). _n counts included.
     allowed = CARD_COLUMNS | set(hj.LAYER2_FIELDS)
     referenced = rs._collect_fields(rules, set())
-    fc = rs.check_fields(referenced, allowed, post_race, set())
+    fc = rs.check_fields(referenced, allowed, post_race, set(), unverified)
 
     res = {"ok": False, "field_check": fc, "errors": []}
     if fc["leakage"]:
         res["errors"].append(
             "post-race column(s) referenced -- these do NOT exist on a racecard "
             "(the race has not run): " + ", ".join(fc["leakage"]))
+    if fc["unverified"]:
+        res["errors"].append(
+            "PROPOSED Tier-2 course-geometry field(s) not yet confirmed "
+            "(verify in the manifest before use): " + ", ".join(fc["unverified"]))
     if fc["unknown"]:
         res["errors"].append(
             "column(s) not produced from racecards (e.g. sex_rest, or a typo): "

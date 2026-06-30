@@ -115,19 +115,23 @@ _FALLBACK_POSTRACE = {
 # Manifest -> field classification sets (for leakage + materialisation checks) #
 # --------------------------------------------------------------------------- #
 def load_manifest_sets():
-    """Return (post_race_names, derived_names) from field_manifest.json.
+    """Return (post_race_names, derived_names, unverified_names) from the manifest.
 
     Falls back to the hard-coded post-race set if the manifest can't be read,
-    so the leakage guard is never silently disabled.
+    so the leakage guard is never silently disabled. `unverified_names` are fields
+    explicitly flagged verified=false (e.g. the PROPOSED Tier-2 course-geometry
+    fields): they are refused as selection inputs until a human confirms them.
     """
     try:
-        with open(MANIFEST) as fh:
+        with open(MANIFEST, encoding="utf-8") as fh:
             m = json.load(fh)
         post = {f["name"] for f in m.get("fields", []) if f.get("stage") == "post_race"}
         derived = {d["name"] for d in m.get("derived_features", [])}
-        return (post or set(_FALLBACK_POSTRACE)), derived
+        unverified = {f["name"] for f in m.get("course_geometry", [])
+                      if f.get("verified") is False}
+        return (post or set(_FALLBACK_POSTRACE)), derived, unverified
     except Exception:
-        return set(_FALLBACK_POSTRACE), set()
+        return set(_FALLBACK_POSTRACE), set(), set()
 
 
 # --------------------------------------------------------------------------- #
@@ -230,13 +234,18 @@ def _collect_fields(node, acc):
 # --------------------------------------------------------------------------- #
 # The bridge itself.                                                           #
 # --------------------------------------------------------------------------- #
-def check_fields(referenced, columns, post_race, derived):
+def check_fields(referenced, columns, post_race, derived, unverified=frozenset()):
     """Classify each referenced field; the strategy is runnable only if every
-    field is `ok` (a real, selectable column of the chosen CSV)."""
-    report = {"ok": [], "leakage": [], "unsupported_derived": [], "unknown": []}
+    field is `ok` (a real, selectable column of the chosen CSV).
+
+    `unverified` fields (PROPOSED Tier-2 course geometry) ARE real columns but are
+    refused until a human confirms them -- so they cannot feed analysis early."""
+    report = {"ok": [], "leakage": [], "unverified": [], "unsupported_derived": [], "unknown": []}
     for f in sorted(referenced):
         if f in post_race:
             report["leakage"].append(f)
+        elif f in unverified:
+            report["unverified"].append(f)              # materialised but not yet trusted
         elif f in columns:
             report["ok"].append(f)
         elif f in derived:
@@ -270,19 +279,25 @@ def run_strategy(strategy, mode="backtest"):
         res["errors"].append(f"source_csv not found: {src}")
         return res
 
-    post_race, derived = load_manifest_sets()
+    post_race, derived, unverified = load_manifest_sets()
     with open(src, newline="") as f:
         columns = set(next(csv.reader(f)))         # header row
 
     referenced = _collect_fields(rules, set())
-    field_check = check_fields(referenced, columns, post_race, derived)
+    field_check = check_fields(referenced, columns, post_race, derived, unverified)
     res["field_check"] = field_check
-    bad = field_check["leakage"] + field_check["unsupported_derived"] + field_check["unknown"]
+    bad = (field_check["leakage"] + field_check["unverified"]
+           + field_check["unsupported_derived"] + field_check["unknown"])
     if bad:
         if field_check["leakage"]:
             res["errors"].append(
                 "leakage: selection rules reference post-race column(s): "
                 + ", ".join(field_check["leakage"]))
+        if field_check["unverified"]:
+            res["errors"].append(
+                "unverified: selection rules reference PROPOSED Tier-2 course-geometry "
+                "field(s) not yet confirmed (flip verified=true in the manifest after "
+                "review): " + ", ".join(field_check["unverified"]))
         if field_check["unsupported_derived"]:
             res["errors"].append(
                 "unsupported: derived feature(s) not materialised in this CSV "

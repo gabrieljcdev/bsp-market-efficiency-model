@@ -1,0 +1,66 @@
+course,handedness,course_shape,circumference_f,run_in_y,course_character,undulation,uphill_finish,tier2_verified,notes
+Aintree,Left,Triangular,12,260,Galloping,Flat,No,false,"Mildmay course shown; Grand National course ~18f, run-in 494y"
+Ascot,Right,Triangular,14,,Galloping,Undulating,Yes,false,Round course rises to the line
+Ayr,Left,Oval,12,,Galloping,Flat,No,false,
+Bangor-on-Dee,Left,Oval,9,,Sharp,Flat,No,false,No grandstand bend; flat sharp circuit
+Bath,Left,Oval,12,,Galloping,Undulating,Yes,false,Highest course in GB; stiff uphill run-in
+Beverley,Right,Oval,11,,Stiff,Undulating,Yes,false,Stiff uphill last 3f
+Brighton,Left,Horseshoe,12,,Sharp,Undulating,No,false,"Switchback, Epsom-like"
+Carlisle,Right,Pear,13,,Stiff,Undulating,Yes,false,Stiff uphill finish
+Cartmel,Left,Oval,8,880,Sharp,Undulating,No,false,Longest run-in in GB (~4f)
+Catterick,Left,Oval,10,,Sharp,Undulating,No,false,
+Chelmsford (AW),Left,Oval,10,,Galloping,Flat,No,false,Polytrack; wide sweeping turns
+Cheltenham,Left,Oval,12,,Galloping,Undulating,Yes,false,Old course ~12f / New ~13f; famous uphill finish
+Chepstow,Left,Oval,16,,Galloping,Undulating,Yes,false,
+Chester,Left,Round,8,,Sharp,Flat,No,false,"Smallest, near-circular, tightest turning track in GB"
+Doncaster,Left,Pear,16,,Galloping,Flat,No,false,Plus straight mile
+Epsom,Left,Horseshoe,12,,Galloping,Undulating,No,false,Severe camber/descent to Tattenham; ~flat finish
+Exeter,Right,Oval,16,,Stiff,Undulating,Yes,false,One of the stiffest tracks
+Fakenham,Left,Oval,8,,Sharp,Undulating,Yes,false,Tight square-ish circuit
+Ffos Las,Left,Oval,12,,Galloping,Flat,No,false,Newest GB course (2009)
+Fontwell,Figure-of-eight,Figure-of-eight,10,,Sharp,Undulating,No,false,Chase course is figure-of-eight; hurdles a left-handed oval
+Goodwood,Right,Horseshoe,14,,Galloping,Undulating,No,false,Loop/horseshoe with downhill sections
+Hamilton,Right,Oval,13,,Galloping,Undulating,Yes,false,Rises to the line; straight 6f
+Haydock,Left,Oval,13,,Galloping,Flat,No,false,
+Hereford,Right,Oval,12,,Galloping,Undulating,Yes,false,Square-ish circuit
+Hexham,Left,Oval,12,,Stiff,Undulating,Yes,false,"Very undulating, stiff finish"
+Huntingdon,Right,Oval,12,,Galloping,Flat,No,false,
+Kelso,Left,Oval,13,,Galloping,Undulating,Yes,false,Stiff uphill run-in
+Kempton,Right,Triangular,13,,Galloping,Flat,No,false,Jumps (turf) course
+Kempton (AW),Right,Oval,10,,Sharp,Flat,No,false,Polytrack; inner & outer ovals
+Leicester,Right,Oval,14,,Galloping,Undulating,Yes,false,Stiff finish
+Lingfield,Left,Horseshoe,12,,Sharp,Undulating,No,false,Turf course (switchback)
+Lingfield (AW),Left,Oval,10,,Sharp,Flat,No,false,Polytrack
+Ludlow,Right,Oval,12,,Galloping,Flat,No,false,
+Market Rasen,Right,Oval,10,,Sharp,Undulating,No,false,
+Musselburgh,Right,Oval,10,,Sharp,Flat,No,false,
+Newbury,Left,Oval,14,,Galloping,Flat,No,false,Fair galloping test
+Newcastle,Left,Oval,14,,Galloping,Undulating,Yes,false,Turf (jumps); uphill finish
+Newcastle (AW),Left,Oval,14,,Galloping,Flat,No,false,Tapeta; straight mile + round
+Newmarket,Right,Oval,18,,Galloping,Undulating,Yes,false,"Rowley Mile; broad galloping straights, The Dip then rise to line"
+Newmarket (July),Right,Oval,16,,Galloping,Undulating,Yes,false,July course; dip and rise to the line
+Newton Abbot,Left,Oval,9,,Sharp,Flat,No,false,Very sharp
+Nottingham,Left,Oval,12,,Galloping,Flat,No,false,
+Perth,Right,Oval,10,,Galloping,Flat,No,false,
+Plumpton,Left,Oval,9,,Sharp,Undulating,Yes,false,"Tight, stiff uphill finish"
+Pontefract,Left,Oval,16,,Galloping,Undulating,Yes,false,"Undulating, stiff uphill finish (one of the stiffest)"
+Redcar,Left,Oval,14,,Galloping,Flat,No,false,
+Ripon,Right,Oval,13,,Sharp,Undulating,No,false,
+Salisbury,Right,Oval,12,,Galloping,Undulating,Yes,false,Straight mile + loop; stiff last half-mile
+Sandown,Right,Oval,13,,Galloping,Undulating,Yes,false,Famous uphill finish; separate uphill straight 5f
+Sedgefield,Left,Oval,10,,Sharp,Undulating,No,false,
+Southwell,Left,Oval,10,,Sharp,Flat,No,false,Turf course
+Southwell (AW),Left,Oval,10,,Sharp,Flat,No,false,Fibresand/Tapeta; tight
+Stratford,Left,Oval,10,,Sharp,Flat,No,false,
+Taunton,Right,Oval,12,,Galloping,Flat,No,false,
+Thirsk,Left,Oval,10,,Sharp,Flat,No,false,
+Towcester,Right,Oval,14,,Stiff,Undulating,Yes,false,One of the stiffest uphill finishes; very few rows in data
+Uttoxeter,Left,Oval,12,,Galloping,Undulating,No,false,
+Warwick,Left,Oval,13,,Sharp,Undulating,No,false,Sharp bends
+Wetherby,Left,Oval,14,,Galloping,Flat,No,false,
+Wincanton,Right,Oval,13,,Galloping,Flat,No,false,
+Windsor,Figure-of-eight,Figure-of-eight,12,,Galloping,Flat,No,false,Figure-of-eight
+Wolverhampton (AW),Left,Oval,9,,Sharp,Flat,No,false,Tapeta; tight
+Worcester,Left,Oval,13,,Galloping,Flat,No,false,
+Yarmouth,Left,Oval,13,,Galloping,Flat,No,false,
+York,Left,Horseshoe,16,,Galloping,Flat,No,false,"Galloping, flat ~2m"

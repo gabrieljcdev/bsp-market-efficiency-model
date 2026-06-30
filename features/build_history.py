@@ -19,6 +19,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import history_join as hj  # noqa: E402
+import course_geometry as cg  # noqa: E402  -- static course-geometry reference join
 
 SRC = hj.DEFAULT_CSV
 OUT = os.path.join(hj._ROOT, "data", "joined", "joined_gb_2018_2026_hist.csv")
@@ -56,18 +57,21 @@ def main():
     with open(SRC, newline="") as f:
         base_header = next(csv.reader(f))
 
+    geo = cg.load_geometry()                 # static course -> geometry (Tier 1 + 2)
     n = 0
     with open(OUT, "w", newline="") as g:
         w = csv.writer(g)
-        w.writerow(base_header + [out for _, out in DERIVED])
+        w.writerow(base_header + [out for _, out in DERIVED] + cg.GEOMETRY_COLS)
         for r, feats in hj.iter_row_features(SRC):
             n += 1
             base_vals = [r.get(c, "") for c in base_header]
             deriv_vals = [fmt(feats.get(key)) for key, _ in DERIVED]
-            w.writerow(base_vals + deriv_vals)
+            geo_vals = cg.geometry_for(r.get("course", ""), geo)
+            w.writerow(base_vals + deriv_vals + geo_vals)
 
     print(f"wrote {OUT}")
-    print(f"  rows={n}  base_cols={len(base_header)}  derived_cols={len(DERIVED)}")
+    print(f"  rows={n}  base_cols={len(base_header)}  derived_cols={len(DERIVED)}"
+          f"  geometry_cols={len(cg.GEOMETRY_COLS)}")
 
 
 if __name__ == "__main__":

@@ -276,6 +276,16 @@ const MANIFEST = {
     {name:"sire_going_profile",type:"numeric",selectable:true,materialised:false,stage:"derived",source_columns:["sire","going","pos"],control:"numeric"},
     {name:"sire_dist_profile",type:"numeric",selectable:true,materialised:false,stage:"derived",source_columns:["sire","dist_f","pos"],control:"numeric"},
     {name:"first_time_hg",type:"flag",selectable:true,materialised:false,stage:"derived",source_columns:["hg"],control:"flag"}
+  ],
+  geometry_note: "Static track facts joined on course name — they describe the TRACK, not the result (pre-race, leakage-safe). Tier 1 published & selectable; Tier 2 PROPOSED & UNVERIFIED — not selectable until confirmed.",
+  course_geometry: [
+    {name:"handedness",type:"categorical",selectable:true,materialised:true,stage:"pre_race",tier:1,verified:true,source_columns:["course"],description:"Direction of the track.",control:"enum_select",values:["Left", "Right", "Figure-of-eight"],value_source:"definition"},
+    {name:"course_shape",type:"categorical",selectable:true,materialised:true,stage:"pre_race",tier:1,verified:true,source_columns:["course"],description:"Circuit shape.",control:"enum_select",values:["Oval", "Triangular", "Horseshoe", "Pear", "Round", "Figure-of-eight"],value_source:"definition"},
+    {name:"circumference_f",type:"numeric",selectable:true,materialised:true,stage:"pre_race",tier:1,verified:true,source_columns:["course"],description:"Round-course length in furlongs (approx published).",control:"numeric"},
+    {name:"run_in_y",type:"numeric",selectable:true,materialised:true,stage:"pre_race",tier:1,verified:true,source_columns:["course"],description:"Run-in length in yards where known (mostly blank).",control:"numeric"},
+    {name:"course_character",type:"categorical",selectable:false,materialised:true,stage:"pre_race",tier:2,verified:false,warn:"unverified",source_columns:["course"],description:"PROPOSED / UNVERIFIED — track character. Confirm before enabling.",control:"enum_select",values:["Galloping", "Sharp", "Stiff"],value_source:"definition",note:"Tier-2 unverified — confirm before enabling."},
+    {name:"undulation",type:"categorical",selectable:false,materialised:true,stage:"pre_race",tier:2,verified:false,warn:"unverified",source_columns:["course"],description:"PROPOSED / UNVERIFIED — gradient profile. Confirm before enabling.",control:"enum_select",values:["Flat", "Undulating"],value_source:"definition",note:"Tier-2 unverified — confirm before enabling."},
+    {name:"uphill_finish",type:"categorical",selectable:false,materialised:true,stage:"pre_race",tier:2,verified:false,warn:"unverified",source_columns:["course"],description:"PROPOSED / UNVERIFIED — uphill finish. Confirm before enabling.",control:"enum_select",values:["Yes", "No"],value_source:"definition",note:"Tier-2 unverified — confirm before enabling."}
   ]
 };
 
@@ -429,21 +439,27 @@ function fieldListHTML(q){
   const match = f => f.name.toLowerCase().includes(q);
   const pre = MANIFEST.fields.filter(f=>f.stage==='pre_race' && f.control!=='constant' && match(f));
   const der = MANIFEST.derived_features.filter(match);
+  const geo = (MANIFEST.course_geometry||[]).filter(match);
   const post = MANIFEST.fields.filter(f=>f.stage==='post_race' && match(f));
   const chips = (list, gk) => list.length
     ? list.map(f=>{
-        if(gk==='post') return `<span class="fchip blocked" title="${esc(f.note||'post-race / leakage')}">${f.name}<span class="lock">⊘ leakage</span></span>`;
+        if(!f.selectable){
+          const lbl = f.warn==='unverified' ? '⊘ unverified' : '⊘ leakage';
+          return `<span class="fchip blocked" title="${esc(f.note||'not selectable')}">${f.name}<span class="lock">${lbl}</span></span>`;
+        }
         const cls = gk==='der' ? 'fchip der' : 'fchip';
         return `<button class="${cls}" onclick="chooseField('${f.name}','${gk}')">${f.name}<span class="ty">${f.type}${f.coerce?' · coerce':''}</span></button>`;
       }).join('')
     : `<span class="faint small">— none —</span>`;
   return `<div class="grp"><div class="gh">Pre-race</div><div class="fields">${chips(pre,'pre')}</div></div>`
     + `<div class="grp"><div class="gh">Derived · prior-run</div><div class="fields">${chips(der,'der')}</div></div>`
+    + `<div class="grp"><div class="gh">Course geometry · track reference</div><div class="fields">${chips(geo,'geo')}</div></div>`
     + `<div class="grp"><div class="gh">Post-race · blocked</div><div class="fields">${chips(post,'post')}</div></div>`;
 }
 function updateFieldList(){ const el=document.getElementById('fieldList'); if(el) el.innerHTML=fieldListHTML(document.getElementById('pickSearch').value); }
 function chooseField(name, gk){
   const def = gk==='der' ? MANIFEST.derived_features.find(f=>f.name===name)
+            : gk==='geo' ? (MANIFEST.course_geometry||[]).find(f=>f.name===name)
                          : MANIFEST.fields.find(f=>f.name===name && f.stage==='pre_race');
   state.picker.field = Object.assign({}, def, {group: gk==='der'?'derived':'pre'});
   state.picker.fieldGroup = gk;
