@@ -285,7 +285,7 @@ const MANIFEST = {
     {name:"run_in_y",type:"numeric",selectable:true,materialised:true,stage:"pre_race",tier:1,verified:true,source_columns:["course"],description:"Run-in length in yards where known (mostly blank).",control:"numeric"},
     {name:"course_character",type:"categorical",selectable:false,materialised:true,stage:"pre_race",tier:2,verified:false,warn:"unverified",source_columns:["course"],description:"PROPOSED / UNVERIFIED — track character. Confirm before enabling.",control:"enum_select",values:["Galloping", "Sharp", "Stiff"],value_source:"definition",note:"Tier-2 unverified — confirm before enabling."},
     {name:"undulation",type:"categorical",selectable:false,materialised:true,stage:"pre_race",tier:2,verified:false,warn:"unverified",source_columns:["course"],description:"PROPOSED / UNVERIFIED — gradient profile. Confirm before enabling.",control:"enum_select",values:["Flat", "Undulating"],value_source:"definition",note:"Tier-2 unverified — confirm before enabling."},
-    {name:"uphill_finish",type:"categorical",selectable:false,materialised:true,stage:"pre_race",tier:2,verified:false,warn:"unverified",source_columns:["course"],description:"PROPOSED / UNVERIFIED — uphill finish. Confirm before enabling.",control:"enum_select",values:["Yes", "No"],value_source:"definition",note:"Tier-2 unverified — confirm before enabling."}
+    {name:"uphill_finish",type:"categorical",selectable:true,materialised:true,stage:"pre_race",tier:2,verified:true,verified_scope:"per_course",source_columns:["course"],description:"Uphill finish (Yes / No). Verified PER COURSE — only confirmed courses carry a value (11 so far); a rule on this selects only verified courses.",control:"enum_select",values:["Yes", "No"],value_source:"definition"}
   ]
 };
 

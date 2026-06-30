@@ -36,7 +36,20 @@ OUT = os.path.join(_HERE, "course_geometry.csv")
 
 FIELDS = ["course", "handedness", "course_shape", "circumference_f", "run_in_y",
           "course_character", "undulation", "uphill_finish",
-          "tier2_verified", "notes"]
+          "course_character_verified", "undulation_verified", "uphill_finish_verified",
+          "notes"]
+
+# PER-FIELD, PER-COURSE Tier-2 verification. Tier-2 fields start unverified; a
+# human confirms values course-by-course and the relevant <field>_verified flips
+# to true. course_character / undulation: not verified anywhere yet. uphill_finish:
+# verified for the courses below (the defining stiff-uphill finishes and the clear
+# flat/downhill finishes), checked against well-established track facts.
+VERIFIED_UPHILL = {
+    # stiff uphill finishes (uphill_finish = Yes)
+    "Sandown", "Towcester", "Ascot", "Pontefract", "Chepstow", "Hereford", "Fakenham",
+    # flat / downhill finishes (uphill_finish = No)
+    "Epsom", "Goodwood", "Newbury", "Uttoxeter",
+}
 
 # course: (handedness, shape, circ_f, run_in_y,            # TIER 1
 #          character, undulation, uphill_finish,           # TIER 2 (proposed)
@@ -164,7 +177,10 @@ def main():
                 "course": course, "handedness": hand, "course_shape": shape,
                 "circumference_f": circ, "run_in_y": runin,
                 "course_character": char, "undulation": und, "uphill_finish": up,
-                "tier2_verified": "false", "notes": notes,
+                "course_character_verified": "false",
+                "undulation_verified": "false",
+                "uphill_finish_verified": "true" if course in VERIFIED_UPHILL else "false",
+                "notes": notes,
             })
     print(f"OK -- {len(GEOMETRY)}/{len(data_courses)} dataset courses matched, "
           f"0 missing, 0 unmatched.")

@@ -23,24 +23,42 @@ _ROOT = os.path.dirname(_HERE)
 REFERENCE_CSV = os.path.join(_ROOT, "data", "reference", "course_geometry.csv")
 
 # Geometry value columns materialised per runner, in order. Tier 1 first, then
-# the (unverified) Tier 2 block. Excludes the bookkeeping cols (tier2_verified,
-# notes) and the join key (course) itself.
+# the Tier 2 block. Excludes the bookkeeping cols (<field>_verified, notes) and
+# the join key (course) itself.
 TIER1_COLS = ["handedness", "course_shape", "circumference_f", "run_in_y"]
 TIER2_COLS = ["course_character", "undulation", "uphill_finish"]
 GEOMETRY_COLS = TIER1_COLS + TIER2_COLS
+
+# Tier-2 fields PROMOTED to per-course verification: their value is materialised
+# ONLY for courses whose <field>_verified == true (others blank), so an unverified
+# course's draft value can never feed analysis even though the field is selectable.
+# Still-fully-gated Tier-2 fields (course_character / undulation) are NOT here:
+# they are carried raw for display but kept selectable=false + engine-refused via
+# the manifest. Add a field here when it becomes per-course-verified + selectable.
+PER_COURSE_VERIFIED = {"uphill_finish"}
 
 _CACHE = None
 
 
 def load_geometry(path=REFERENCE_CSV):
-    """course-name -> {col: value} for the GEOMETRY_COLS. Memoised."""
+    """course-name -> {col: value} for the GEOMETRY_COLS. Memoised.
+
+    A PER_COURSE_VERIFIED Tier-2 field is blanked for any course where its
+    <field>_verified flag is not "true" (unverified -> unknown)."""
     global _CACHE
     if _CACHE is not None:
         return _CACHE
     m = {}
     with open(path, newline="") as f:
         for r in csv.DictReader(f):
-            m[r["course"]] = {c: (r.get(c) or "") for c in GEOMETRY_COLS}
+            vals = {}
+            for c in GEOMETRY_COLS:
+                v = r.get(c) or ""
+                if c in PER_COURSE_VERIFIED:
+                    verified = (r.get(c + "_verified") or "").strip().lower() == "true"
+                    v = v if verified else ""
+                vals[c] = v
+            m[r["course"]] = vals
     _CACHE = m
     return m
 
