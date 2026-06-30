@@ -8,6 +8,11 @@ data/form/
 data/joined/
 output/
 
+# Weather probe: API cache + derived weather tables (regenerable from fetch)
+data/weather/cache/
+data/weather/weather_by_race.csv
+data/weather/_probe_coverage.py
+
 # Python
 .venv/
 .venv313/
