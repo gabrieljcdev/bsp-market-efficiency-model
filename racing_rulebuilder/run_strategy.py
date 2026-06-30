@@ -59,17 +59,47 @@ HIST_CSV = os.path.join(_ROOT, "data", "joined", "joined_gb_2018_2026_hist.csv")
 DEFAULT_CSV = HIST_CSV if os.path.exists(HIST_CSV) else BASE_CSV
 MANIFEST = os.path.join(_HERE, "field_manifest.json")
 STAGE1_SCORED = os.path.join(_ROOT, "models", "stage1_scored.csv")
+STAGE2_SCORED = os.path.join(_ROOT, "models", "stage2_scored.csv")
 DEFAULT_STRUCK_COL = "wap"          # struck price convention (STRUCK_MODE=wap)
 DEFAULT_COMMISSION = clv.DEFAULT_COMMISSION   # 0.05, reuse the harness default
 
 # Verdict thresholds. The verdict is decided on the HOLDOUT partition, and the
 # headline number is @BSP -- specifically edge_bsp = strategy ROI@BSP minus the
-# same-period back-all@BSP baseline. Settling at BSP removes the wap-vs-bsp
-# timing offset; differencing the back-all baseline removes overround/commission
-# drag and favourite-longshot composition -- so neither convexity nor the timing
-# artifact can masquerade as harvestable edge.
+# PRICE-BAND-STRATIFIED back-all@BSP baseline. Settling at BSP removes the
+# wap-vs-bsp timing offset; the stratified baseline (below) removes BOTH the
+# overround AND the favourite-longshot price composition -- so neither convexity,
+# the timing artifact, nor a mere skew toward short prices can masquerade as edge.
 THIN_HOLDOUT_N = 2000               # fewer scored holdout bets than this -> can't confirm
 EDGE_TOL = 0.01                     # +/-1pp band around the efficient close (BSP baseline)
+
+# --- favourite-longshot hole, the two hardening pieces -------------------------
+# (1) Price-band-stratified null. The old composition-fair null de-overrounds the
+#     field by a single per-race factor (p_i = (1/bsp_i)/Z), which only neutralises
+#     the OVERROUND level -- a favourite-skewed selection still beats it for free,
+#     because the favourite-longshot bias means short prices return MORE @BSP than
+#     their de-overrounded implied prob. The stratified null instead benchmarks
+#     each selected horse against the actual back-all@BSP return of the FULL field
+#     IN ITS OWN BSP BAND, so price composition is matched, not just the overround.
+_PRICE_BAND_EDGES = (1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 8.0,
+                     10.0, 15.0, 20.0, 30.0, 50.0, float("inf"))
+_N_PRICE_BANDS = len(_PRICE_BAND_EDGES) - 1
+MIN_BAND_N = 50                     # thin band -> fall back to the full-field @BSP ROI
+# (2) Brier-corroboration gate. A CLV edge with no PROBABILITY edge behind it is
+#     the favourite-longshot artifact, not skill. To read ruled-in, the blend must
+#     actually beat BSP on Brier over the selection's own horses (read from the
+#     existing stage-2 scored output). Below this coverage the blend can't judge
+#     the selection, so the edge is treated as un-corroborated (-> priced).
+MIN_BRIER_COVERAGE = 0.5
+
+
+def _price_band(bsp):
+    """Index of `bsp` in _PRICE_BAND_EDGES, or None if unpriced (bsp <= 1)."""
+    if not bsp or bsp <= 1.0:
+        return None
+    for i in range(_N_PRICE_BANDS):
+        if _PRICE_BAND_EDGES[i] <= bsp < _PRICE_BAND_EDGES[i + 1]:
+            return i
+    return _N_PRICE_BANDS - 1
 
 # Hard-coded fallback if field_manifest.json is missing: post-race / market
 # columns that must never drive a SELECTION. Mirrors stage1_logit.FORBIDDEN +
@@ -284,6 +314,8 @@ def run_strategy(strategy, mode="backtest"):
     bets = {p: [] for p in parts}
     base_pnl = {p: 0.0 for p in parts}      # back-ALL @BSP -> the efficient-close baseline
     base_n = {p: 0 for p in parts}
+    band_pnl = {p: [0.0] * _N_PRICE_BANDS for p in parts}   # back-all@BSP P&L per BSP band
+    band_n = {p: [0] * _N_PRICE_BANDS for p in parts}       #   -> price-band-stratified null
     skipped_price = {p: 0 for p in parts}
     race_Z = {}    # per-race sum(1/bsp) over priced runners = overround (calibrated null)
     rows = 0
@@ -317,9 +349,15 @@ def run_strategy(strategy, mode="backtest"):
             rid = clv._race_id(r) if priced else None
 
             if want_scoring and priced:
-                # old full-field baseline: back EVERY priced runner @BSP
-                base_pnl[p] += clv.back_bet_pnl(bsp, won, commission)
+                # full-field baseline: back EVERY priced runner @BSP
+                ff_pnl = clv.back_bet_pnl(bsp, won, commission)
+                base_pnl[p] += ff_pnl
                 base_n[p] += 1
+                # same P&L bucketed by BSP band -> the price-band-stratified null
+                bi = _price_band(bsp)
+                if bi is not None:
+                    band_pnl[p][bi] += ff_pnl
+                    band_n[p][bi] += 1
                 # per-race overround (sum of raw BSP-implied probs) for the calibrated null
                 race_Z[rid] = race_Z.get(rid, 0.0) + 1.0 / bsp
 
@@ -342,13 +380,16 @@ def run_strategy(strategy, mode="backtest"):
         res["skipped_no_date"] = skipped_no_date
 
     def block(p):
-        """Per-partition result: qualifiers, CLV (reuse clv.summarise), and TWO
+        """Per-partition result: qualifiers, CLV (reuse clv.summarise), and THREE
         @BSP baselines with their edges:
           * full-field : back-all@BSP over the whole field (composition-BLIND).
           * fair null  : the SELECTION's own horses settled at BSP under a
-                         BSP-calibrated, overround-removed null -- 'what these
-                         exact horses return if BSP is perfectly efficient'.
-        edge_bsp (the verdict headline) is the COMPOSITION-FAIR one.
+                         BSP-calibrated, overround-removed null -- strips the
+                         overround LEVEL but not favourite-longshot composition.
+          * stratified : each selected horse vs the full field's back-all@BSP
+                         return IN ITS OWN BSP BAND -- strips price composition too.
+        edge_bsp (the verdict headline) is the PRICE-BAND-STRATIFIED one; the
+        block also carries the blend-vs-BSP Brier corroboration for the gate.
         """
         b = {"qualifiers": qual[p]}
         if not want_scoring:
@@ -379,7 +420,34 @@ def run_strategy(strategy, mode="backtest"):
         b["edge_bsp_fair"] = ((roi - fair_roi)
                               if (roi is not None and fair_roi is not None) else None)
 
-        b["edge_bsp"] = b["edge_bsp_fair"]      # headline / verdict metric
+        # NEW (HEADLINE) price-band-stratified null: benchmark each selected horse
+        # against the full field's actual back-all@BSP ROI in its OWN BSP band, so
+        # favourite-longshot price composition is neutralised, not just overround.
+        # A thin band (< MIN_BAND_N full-field runners) falls back to the global
+        # full-field ROI so a sparse price bucket can't dominate the baseline.
+        ff_global = (base_pnl[p] / base_n[p]) if base_n[p] else None
+        strat_pnl, sn = 0.0, 0
+        for bet in bets[p]:
+            bi = _price_band(bet["bsp"])
+            if bi is None:
+                continue
+            if band_n[p][bi] >= MIN_BAND_N:
+                strat_pnl += band_pnl[p][bi] / band_n[p][bi]
+            elif ff_global is not None:
+                strat_pnl += ff_global
+            else:
+                continue
+            sn += 1
+        strat_roi = (strat_pnl / sn) if sn else None
+        b["bsp_baseline_strat"] = {"n": sn, "roi_bsp": strat_roi,
+                                   "n_bands": _N_PRICE_BANDS}
+        b["edge_bsp_strat"] = ((roi - strat_roi)
+                               if (roi is not None and strat_roi is not None) else None)
+
+        # Brier-corroboration: does the blend beat BSP on the selection's horses?
+        b["brier"] = _brier_corroboration(bets[p])
+
+        b["edge_bsp"] = b["edge_bsp_strat"]      # headline / verdict metric
         if b["clv"]:
             b["by_type"] = _by_type(bets[p], commission)
         if staking_cfg and bets[p]:
@@ -395,10 +463,12 @@ def run_strategy(strategy, mode="backtest"):
         res["discovery_clv"], res["holdout_clv"] = disc.get("clv"), hold.get("clv")
         if want_scoring:
             res["verdict"], res["verdict_reason"] = _verdict(disc, hold)
-            res["verdict_metric"] = ("holdout edge_bsp = selection ROI@BSP - composition-fair "
-                                     "BSP-calibrated null on the SAME horses (net commission); "
-                                     "BSP strips the wap timing offset, the calibrated null "
-                                     "strips price-mix composition")
+            res["verdict_metric"] = ("holdout edge_bsp = selection ROI@BSP - PRICE-BAND-"
+                                     "STRATIFIED back-all@BSP null (net commission): BSP strips "
+                                     "the wap timing offset, the per-band null strips overround "
+                                     "AND favourite-longshot composition. Ruled-in additionally "
+                                     "requires the blend to beat BSP on Brier over the selection "
+                                     "(a real probability edge, not a CLV-relative one).")
             res["thresholds"] = {"thin_holdout_n": THIN_HOLDOUT_N, "edge_tol": EDGE_TOL}
         return res
 
@@ -411,9 +481,12 @@ def run_strategy(strategy, mode="backtest"):
         res["clv"] = a["clv"]
         res["bsp_baseline_fullfield"] = a["bsp_baseline_fullfield"]
         res["bsp_baseline_fair"] = a["bsp_baseline_fair"]
+        res["bsp_baseline_strat"] = a["bsp_baseline_strat"]
         res["edge_bsp_fullfield"] = a["edge_bsp_fullfield"]
         res["edge_bsp_fair"] = a["edge_bsp_fair"]
+        res["edge_bsp_strat"] = a["edge_bsp_strat"]
         res["edge_bsp"] = a["edge_bsp"]
+        res["brier"] = a["brier"]
         if a.get("staking"):
             res["staking"] = a["staking"]
         if a["clv"]:
@@ -425,18 +498,89 @@ def run_strategy(strategy, mode="backtest"):
     return res
 
 
+_BLEND_MAP = None
+_BLEND_MAP_LOADED = False
+
+
+def _load_blend_map():
+    """(race_id, horse) -> (blend_prob, bsp_implied_prob, won) from the EXISTING
+    stage-2 scored output. Memoised; returns None if the file is absent.
+
+    Both probabilities are renormalised per race in the scored file, so their
+    Brier scores are directly comparable (model vs market on one footing). Read
+    only; we never refit. Used by the Brier-corroboration gate.
+    """
+    global _BLEND_MAP, _BLEND_MAP_LOADED
+    if _BLEND_MAP_LOADED:
+        return _BLEND_MAP
+    _BLEND_MAP_LOADED = True
+    if not os.path.exists(STAGE2_SCORED):
+        _BLEND_MAP = None
+        return None
+    m = {}
+    with open(STAGE2_SCORED, newline="") as fh:
+        for r in csv.DictReader(fh):
+            bl = clv._fnum(r.get("blend_prob"))
+            bi = clv._fnum(r.get("bsp_implied_prob"))
+            if bl is None or bi is None:
+                continue
+            won = 1.0 if (r.get("score_pos") or "").strip() == "1" else 0.0
+            m[(r.get("race_id"), r.get("horse"))] = (bl, bi, won)
+    _BLEND_MAP = m
+    return m
+
+
+def _brier_corroboration(bets):
+    """Blend-vs-BSP Brier over the SELECTION's own horses (read-only, stage-2).
+
+    A real probability edge means the blend SEPARATES winners better than the
+    market on these exact horses -> blend Brier < BSP Brier. A positive edge_bsp
+    WITHOUT this is the favourite-longshot artifact (relative-return skew with no
+    forecasting skill behind it). Returns None if the blend file is absent or the
+    selection has zero covered horses; otherwise a dict with the two Briers, the
+    coverage, and whether the blend beats BSP (and whether coverage suffices).
+    """
+    bmap = _load_blend_map()
+    if not bmap or not bets:
+        return None
+    bl_se = bsp_se = 0.0
+    n = 0
+    for bet in bets:
+        rec = bmap.get((bet["race_id"], bet["horse"]))
+        if rec is None:
+            continue
+        blp, bip, won = rec
+        bl_se += (blp - won) ** 2
+        bsp_se += (bip - won) ** 2
+        n += 1
+    if n == 0:
+        return None
+    blend_brier, bsp_brier = bl_se / n, bsp_se / n
+    coverage = n / len(bets)
+    return {"n": n, "coverage": coverage,
+            "blend_brier": blend_brier, "bsp_brier": bsp_brier,
+            "blend_beats_bsp": blend_brier < bsp_brier,
+            "sufficient": coverage >= MIN_BRIER_COVERAGE}
+
+
 def _verdict(disc, hold):
     """Decide the verdict on the HOLDOUT partition, benchmarked to BSP.
 
-    The deciding number is edge_bsp = strategy ROI@BSP - back-all@BSP baseline.
+    The deciding number is edge_bsp = strategy ROI@BSP - PRICE-BAND-STRATIFIED
+    back-all@BSP baseline (favourite-longshot-neutral).
       * thin       -> holdout too small to judge and discovery not compelling.
       * to-holdout -> discovery edge looks good but holdout too thin to confirm.
-      * priced     -> holdout edge collapses onto the efficient close (<= +tol):
-                      only the wap timing offset / convexity, not real edge.
-      * ruled-in   -> holdout edge holds the discovery direction beyond the floor.
+      * priced     -> holdout edge collapses onto the efficient close (<= +tol),
+                      OR is not corroborated by discovery, OR clears the floor but
+                      has NO probability edge behind it (blend !beats BSP on Brier
+                      -- the favourite-longshot artifact). Each of these is priced.
+      * ruled-in   -> holdout edge holds the discovery direction beyond the floor
+                      AND the blend beats BSP on Brier over the selection (a real
+                      probability edge, not just a CLV-relative one).
     """
     he, de = hold.get("edge_bsp"), disc.get("edge_bsp")
     hn = hold.get("scored_bets", 0) or 0
+    br = hold.get("brier")
 
     if he is None or hn < THIN_HOLDOUT_N:
         if de is not None and de > EDGE_TOL:
@@ -453,14 +597,30 @@ def _verdict(disc, hold):
             f"holdout edge vs BSP {he:+.2%} collapses onto the efficient close "
             f"(<= +{EDGE_TOL:.0%}) -- timing offset/convexity, not harvestable edge.")
 
-    if de is not None and de > EDGE_TOL:
-        return "ruled-in", (
-            f"holdout edge vs BSP {he:+.2%} holds the discovery direction "
-            f"({de:+.2%}) beyond the +{EDGE_TOL:.0%} floor on n={hn:,}.")
+    if de is None or de <= EDGE_TOL:
+        d_txt = f"{de:+.2%}" if de is not None else "n/a"
+        return "priced", (
+            f"holdout edge {he:+.2%} not corroborated by discovery ({d_txt}).")
 
-    d_txt = f"{de:+.2%}" if de is not None else "n/a"
-    return "priced", (
-        f"holdout edge {he:+.2%} not corroborated by discovery ({d_txt}).")
+    # Edge clears the floor AND holds discovery -> the Brier-corroboration gate
+    # decides. A CLV edge with no forecasting edge behind it stays priced.
+    if br is None or not br.get("sufficient"):
+        cov = f"{br['coverage']:.0%}" if br else "n/a"
+        return "priced", (
+            f"holdout edge vs BSP {he:+.2%} holds discovery ({de:+.2%}) but the "
+            f"blend covers only {cov} of the selection (< {MIN_BRIER_COVERAGE:.0%}) "
+            "-- can't corroborate a probability edge, so not harvestable.")
+    if not br.get("blend_beats_bsp"):
+        return "priced", (
+            f"holdout edge vs BSP {he:+.2%} holds discovery ({de:+.2%}) but is NOT "
+            f"backed by a probability edge (blend Brier {br['blend_brier']:.5f} "
+            f">= BSP {br['bsp_brier']:.5f}) -- CLV-relative only, the "
+            "favourite-longshot artifact, not harvestable edge.")
+
+    return "ruled-in", (
+        f"holdout edge vs BSP {he:+.2%} holds discovery ({de:+.2%}) beyond the "
+        f"+{EDGE_TOL:.0%} floor on n={hn:,} AND the blend beats BSP on Brier "
+        f"({br['blend_brier']:.5f} < {br['bsp_brier']:.5f}) -- a real probability edge.")
 
 
 def _by_type(bets, commission):
@@ -1040,10 +1200,18 @@ def main():
             print(f"ROI @struck: {c['roi_struck']:+.2%}   ROI @BSP: {c['roi_bsp']:+.2%}")
             ff = res.get("bsp_baseline_fullfield", {}).get("roi_bsp")
             fair = res.get("bsp_baseline_fair", {}).get("roi_bsp")
+            strat = res.get("bsp_baseline_strat", {}).get("roi_bsp")
             if ff is not None:
                 print(f"baseline full-field@BSP: {ff:+.2%}   edge: {res['edge_bsp_fullfield']:+.2%}")
             if fair is not None:
-                print(f"baseline fair-null@BSP : {fair:+.2%}   edge: {res['edge_bsp_fair']:+.2%}  (headline)")
+                print(f"baseline fair-null@BSP : {fair:+.2%}   edge: {res['edge_bsp_fair']:+.2%}")
+            if strat is not None:
+                print(f"baseline band-strat@BSP: {strat:+.2%}   edge: {res['edge_bsp_strat']:+.2%}  (headline)")
+            hb = res.get("brier")
+            if hb:
+                print(f"Brier: blend {hb['blend_brier']:.5f} vs BSP {hb['bsp_brier']:.5f}"
+                      f"  (blend beats BSP: {'YES' if hb['blend_beats_bsp'] else 'NO'}, "
+                      f"{hb['coverage']:.0%} covered)")
     print(f"wrote {out}")
 
 
@@ -1061,14 +1229,24 @@ def _print_split(res):
         print(f"{'scored bets':<26}{d.get('scored_bets',0):>13,}{h.get('scored_bets',0):>13,}")
         print(f"{'ROI @struck (wap)':<26}{pct(g(d,'roi_struck')):>13}{pct(g(h,'roi_struck')):>13}")
         print(f"{'ROI @BSP (selection)':<26}{pct(g(d,'roi_bsp')):>13}{pct(g(h,'roi_bsp')):>13}")
-        print("  -- OLD full-field baseline (composition-blind) --")
+        print("  -- full-field null (composition-blind) --")
         print(f"{'  baseline @BSP':<26}"
               f"{pct(bl(d,'bsp_baseline_fullfield')):>13}{pct(bl(h,'bsp_baseline_fullfield')):>13}")
         print(f"{'  edge vs BSP':<26}{pct(d.get('edge_bsp_fullfield')):>13}{pct(h.get('edge_bsp_fullfield')):>13}")
-        print("  -- NEW composition-fair null (same horses @BSP) --")
+        print("  -- composition-fair null (overround-removed) --")
         print(f"{'  baseline @BSP':<26}"
               f"{pct(bl(d,'bsp_baseline_fair')):>13}{pct(bl(h,'bsp_baseline_fair')):>13}")
-        print(f"{'  edge vs BSP (HEADLINE)':<26}{pct(d.get('edge_bsp_fair')):>13}{pct(h.get('edge_bsp_fair')):>13}")
+        print(f"{'  edge vs BSP':<26}{pct(d.get('edge_bsp_fair')):>13}{pct(h.get('edge_bsp_fair')):>13}")
+        print("  -- price-band-stratified null (favourite-longshot-neutral) --")
+        print(f"{'  baseline @BSP':<26}"
+              f"{pct(bl(d,'bsp_baseline_strat')):>13}{pct(bl(h,'bsp_baseline_strat')):>13}")
+        print(f"{'  edge vs BSP (HEADLINE)':<26}{pct(d.get('edge_bsp_strat')):>13}{pct(h.get('edge_bsp_strat')):>13}")
+        hb = h.get("brier")
+        if hb:
+            verb = "<" if hb["blend_beats_bsp"] else ">="
+            print(f"  -- Brier gate (holdout selection, {hb['coverage']:.0%} covered) --")
+            print(f"  blend {hb['blend_brier']:.5f} {verb} BSP {hb['bsp_brier']:.5f}"
+                  f"  -> blend beats BSP: {'YES' if hb['blend_beats_bsp'] else 'NO'}")
     print(f"\nVERDICT: {res['verdict'].upper()}  --  {res['verdict_reason']}")
 
 
