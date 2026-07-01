@@ -157,5 +157,66 @@ class TestTrainerSrEquivalence(unittest.TestCase):
         self.assertEqual(srs["trainer_course_sr"], 1.0)
 
 
+class TestCountrySuffixLookup(unittest.TestCase):
+    """LIVE-CARD clean names must find COUNTRY-suffixed historical horses.
+
+    Regression for a silent zero-match (worse than a loud error): the historical
+    CSV carries 'Atreides (IRE)'; a live racecard gives the clean 'Atreides', so
+    the runner view / scanner showed 'no history' for horses with plenty. Same
+    class of bug as the course-name byte-match issue. The fix is exact-match-FIRST
+    (historical path untouched) with a country/case-canonical fallback that refuses
+    to merge genuinely different horses (same name, different country)."""
+
+    def test_clean_name_finds_suffixed_history(self):
+        rows = [run("2020-01-01", "Atreides (IRE)", "1"),
+                run("2020-02-01", "Atreides (IRE)", "3"),
+                run("2020-03-01", "Atreides (IRE)", "2")]
+        idx = hj.HistoryIndex(rows=rows)
+        # clean live-card name -> all 3 prior runs found (was 0 before the fix)
+        prior = idx.prior_horse_runs("Atreides", hj.to_ord("2020-06-01"))
+        self.assertEqual(len(prior), 3)
+        f = hj.named_features(idx, ctx("2020-06-01", horse="Atreides"))
+        self.assertEqual(f["career_runs"], 3)
+        self.assertAlmostEqual(f["career_win_pct"], 1 / 3)
+
+    def test_exact_suffixed_lookup_unaffected(self):
+        # the HISTORICAL bridge path (suffixed name on BOTH sides) hits the exact
+        # branch and never touches the canonical fallback -> unchanged behaviour.
+        rows = [run("2020-01-01", "Atreides (IRE)", "1"),
+                run("2020-02-01", "Atreides (IRE)", "3")]
+        idx = hj.HistoryIndex(rows=rows)
+        self.assertEqual(
+            len(idx.prior_horse_runs("Atreides (IRE)", hj.to_ord("2020-06-01"))), 2)
+
+    def test_case_variants_same_country_merge(self):
+        # a source casing inconsistency ('Gwash (IRE)' vs 'gwash (IRE)') is ONE
+        # horse -> its runs merge under the clean name.
+        rows = [run("2020-01-01", "Gwash (IRE)", "1"),
+                run("2020-02-01", "gwash (IRE)", "2")]
+        idx = hj.HistoryIndex(rows=rows)
+        self.assertEqual(
+            len(idx.prior_horse_runs("Gwash", hj.to_ord("2020-06-01"))), 2)
+
+    def test_different_country_is_ambiguous_and_refused(self):
+        # two DIFFERENT horses sharing a name but bred in different countries must
+        # NOT be silently merged on a clean-name lookup.
+        rows = [run("2020-01-01", "Kingsman (IRE)", "1"),
+                run("2020-02-01", "Kingsman (USA)", "1")]
+        idx = hj.HistoryIndex(rows=rows)
+        self.assertEqual(
+            idx.prior_horse_runs("Kingsman", hj.to_ord("2020-06-01")), [])
+        # ...but each exact suffixed name still resolves to its own history.
+        self.assertEqual(
+            len(idx.prior_horse_runs("Kingsman (IRE)", hj.to_ord("2020-06-01"))), 1)
+        self.assertEqual(
+            len(idx.prior_horse_runs("Kingsman (USA)", hj.to_ord("2020-06-01"))), 1)
+
+    def test_canon_horse_parser(self):
+        self.assertEqual(hj.canon_horse("Atreides (IRE)"), ("atreides", "IRE"))
+        self.assertEqual(hj.canon_horse("Bettys Tiara (GB)"), ("bettys tiara", "GB"))
+        self.assertEqual(hj.canon_horse("No Suffix"), ("no suffix", None))
+        self.assertEqual(hj.canon_horse(None), (None, None))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

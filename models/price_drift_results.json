@@ -1,0 +1,124 @@
+{
+  "probe": "clv_price_movement_morning_to_close",
+  "split_cutoff": "2023-12-31",
+  "commission": 0.05,
+  "n_runners": 720022,
+  "common_drift_median_disc": 0.11386138613861396,
+  "band_mean_drift_disc": {
+    "0": 0.359869740720049,
+    "1": 0.03910412488526844,
+    "2": 0.052951225930048335,
+    "3": 0.07348559920790408,
+    "4": 0.09279009477017121,
+    "5": 0.11835900773432183,
+    "6": 0.12971913714907604,
+    "7": 0.15133774770725128,
+    "8": 0.1903831149502328,
+    "9": 0.24616460410431878,
+    "10": 0.35827716822481476,
+    "11": 0.5050469200973954,
+    "12": 0.7579431668753074,
+    "13": 1.177647376958305
+  },
+  "discovery": {
+    "whole_pop_steamers": {
+      "n": 50691,
+      "roi_morning": -0.03474866347083313,
+      "roi_morning_se": 0.015549901243274183,
+      "roi_bsp": -0.014430234163855558,
+      "mean_clv": -0.010579416583705117,
+      "edge_vs_bsp": -0.02031842930697757,
+      "strat_common_edge": -0.037249200263893105,
+      "differential_edge": 0.016930770956915534,
+      "win_rate": 0.16758398926831192,
+      "mean_morning": 13.256250616480242
+    },
+    "inband_steamers": {
+      "n": 50686,
+      "roi_morning": -0.012640403661760684,
+      "roi_morning_se": 0.022107792711030933,
+      "roi_bsp": 0.030885550250562242,
+      "mean_clv": -0.01919304560504285,
+      "edge_vs_bsp": -0.043525953912322925,
+      "strat_common_edge": -0.061113789231725724,
+      "differential_edge": 0.0175878353194028,
+      "win_rate": 0.11502189953833405,
+      "mean_morning": 23.452518644201557
+    },
+    "pred_drifters_ctx": {
+      "n": 50691,
+      "roi_morning": -0.230970063719398,
+      "roi_morning_se": 0.03269815073352557,
+      "roi_bsp": -0.11758439367935139,
+      "mean_clv": -0.1792264200834336,
+      "edge_vs_bsp": -0.1133856700400466,
+      "strat_common_edge": -0.11658200609795757,
+      "differential_edge": 0.0031963360579109756,
+      "win_rate": 0.04878578051330611,
+      "mean_morning": 88.18966759385295
+    },
+    "n_runners": 506919,
+    "feature_resid_r2": 0.011479426503707701,
+    "backall_morning_edge_vs_bsp": -0.06111337018340209
+  },
+  "holdout": {
+    "whole_pop_steamers": {
+      "n": 21310,
+      "roi_morning": -0.03184537775692167,
+      "roi_morning_se": 0.028597572134284308,
+      "roi_bsp": -0.019023275457531724,
+      "mean_clv": -0.015505977674783653,
+      "edge_vs_bsp": -0.012822102299389949,
+      "strat_common_edge": -0.04252842032895937,
+      "differential_edge": 0.029706318029569422,
+      "win_rate": 0.14866259971844203,
+      "mean_morning": 15.170254809948382
+    },
+    "inband_steamers": {
+      "n": 21304,
+      "roi_morning": -0.030264128802102927,
+      "roi_morning_se": 0.03307144889072769,
+      "roi_bsp": 0.0008360636500187236,
+      "mean_clv": -0.01961399353766393,
+      "edge_vs_bsp": -0.03110019245212165,
+      "strat_common_edge": -0.060251542166111505,
+      "differential_edge": 0.029151349713989853,
+      "win_rate": 0.11847540368006008,
+      "mean_morning": 22.434026473901614
+    },
+    "pred_drifters_ctx": {
+      "n": 21310,
+      "roi_morning": -0.25900929141248247,
+      "roi_morning_se": 0.04615932268655894,
+      "roi_bsp": -0.08839713749413423,
+      "mean_clv": -0.16393723302697677,
+      "edge_vs_bsp": -0.17061215391834822,
+      "strat_common_edge": -0.11984823445592035,
+      "differential_edge": -0.050763919462427864,
+      "win_rate": 0.04960112623181605,
+      "mean_morning": 88.89685875175972
+    },
+    "n_runners": 213103,
+    "feature_resid_r2": 0.011869918126149459,
+    "backall_morning_edge_vs_bsp": -0.07579859035302176
+  },
+  "canary": {
+    "discovery_resid_r2": 0.7554343759748459,
+    "holdout_resid_r2": 0.71157088759208
+  },
+  "anchor_feature_vs_drift_corr": {
+    "or": -0.060129538250796845,
+    "draw": 0.04032664358761825,
+    "lbs": -0.024507637579314994,
+    "age": -0.017588856817604734,
+    "f_career_runs": -0.09926845032862189,
+    "f_days_since": 0.05660998519473128,
+    "f_win_rate": -0.09632894667611618,
+    "f_place_rate": -0.15659367415129372,
+    "f_jky_sr": -0.1178244247475888,
+    "f_trn_sr": -0.12156281958366054,
+    "wap_move (CANARY, later price)": 0.9036917528885022
+  },
+  "verdict": "priced",
+  "verdict_reason": "the wap canary IS powered (holdout resid R^2 +0.712, so the rig can see a differential-mover signal), and pre-race features DO carry a small, stable one (holdout resid R^2 +0.0119) -- but it is NOT harvestable: backing the in-band predicted steamers at the morning price still LOSES -3.03% net commission on holdout (mean CLV -1.96%); the positive differential (+2.92%) only means they lose less than their band's common drift. Prices drift OUT morning->close, so the close is the better back price; the differential signal lives in the FLB longshot tail and does not survive commission."
+}

@@ -1,0 +1,179 @@
+{
+  "target": "C_best_of_rest_favourite_excluded",
+  "feature_set": [
+    "or",
+    "draw",
+    "lbs",
+    "age",
+    "f_career_runs",
+    "f_days_since",
+    "f_win_rate",
+    "f_place_rate",
+    "f_jky_sr",
+    "f_trn_sr"
+  ],
+  "split_cutoff": "2023-12-31",
+  "commission": 0.05,
+  "n_races_scanned": 82231,
+  "n_subraces_usable": 81765,
+  "condlogit_beta": {
+    "or": 0.3973054978132146,
+    "draw": -0.020605461154445105,
+    "lbs": 0.026738919593493234,
+    "age": -0.1488793366902658,
+    "f_career_runs": 0.11170415277290546,
+    "f_days_since": -0.06127231150079064,
+    "f_win_rate": 0.019583867342633222,
+    "f_place_rate": 0.286093759315156,
+    "f_jky_sr": 0.11345162233581133,
+    "f_trn_sr": 0.16501966732157808
+  },
+  "blend_beta": {
+    "log_model": 0.007392181930304406,
+    "log_market": 0.9074581599923638
+  },
+  "discovery": {
+    "n_subraces": 57212,
+    "n_runners": 451449,
+    "hit_rate": {
+      "second_fav": 0.32432007271201846,
+      "model": 0.24187233447528492,
+      "blend": 0.32176816052576385,
+      "model_minus_2ndfav": -0.08244773823673354,
+      "blend_minus_2ndfav": -0.0025519121862546124
+    },
+    "brier": {
+      "market": 0.0980086063896207,
+      "model": 0.10469930608281285,
+      "blend": 0.09789995818662146,
+      "blend_minus_market": -0.00010864820299923139,
+      "blend_beats_market": true
+    },
+    "betting_bsp": {
+      "fullfield_nonfav_roi": -0.027423363436401834,
+      "second_fav": {
+        "n": 57212,
+        "win_rate": 0.20663497168426204,
+        "roi_bsp": -0.04521146787387265,
+        "roi_se": 0.008331984875958117,
+        "mean_bsp": 5.316944696916732,
+        "strat_null_bsp": -0.053589358746649524,
+        "edge_strat": 0.00837789087277687
+      },
+      "model": {
+        "n": 57212,
+        "win_rate": 0.14839544151576592,
+        "roi_bsp": 0.07251984723484578,
+        "roi_se": 0.036950493926517954,
+        "mean_bsp": 12.250465461791235,
+        "strat_null_bsp": -0.0459935781535284,
+        "edge_strat": 0.11851342538837417
+      },
+      "blend": {
+        "n": 57212,
+        "win_rate": 0.2047822135216388,
+        "roi_bsp": -0.05628476543382511,
+        "roi_se": 0.008274577404308781,
+        "mean_bsp": 5.316993812486891,
+        "strat_null_bsp": -0.05358903526958556,
+        "edge_strat": -0.002695730164239546
+      }
+    }
+  },
+  "holdout": {
+    "n_subraces": 24553,
+    "n_runners": 189006,
+    "hit_rate": {
+      "second_fav": 0.3260294057752617,
+      "model": 0.23402435547590925,
+      "blend": 0.32362644076080316,
+      "model_minus_2ndfav": -0.09200505029935244,
+      "blend_minus_2ndfav": -0.0024029650144585246
+    },
+    "brier": {
+      "market": 0.1001445017472273,
+      "model": 0.10735524928364122,
+      "blend": 0.10005944434193924,
+      "blend_minus_market": -8.505740528806649e-05,
+      "blend_beats_market": true
+    },
+    "betting_bsp": {
+      "fullfield_nonfav_roi": -0.030581918034348354,
+      "second_fav": {
+        "n": 24553,
+        "win_rate": 0.20567751394941555,
+        "roi_bsp": -0.04736433429723459,
+        "roi_se": 0.012783582557074595,
+        "mean_bsp": 5.258610760395879,
+        "strat_null_bsp": -0.05617471271437087,
+        "edge_strat": 0.008810378417136278
+      },
+      "model": {
+        "n": 24553,
+        "win_rate": 0.14157129475013236,
+        "roi_bsp": 0.03135600537612507,
+        "roi_se": 0.051132265228231825,
+        "mean_bsp": 12.725159043701378,
+        "strat_null_bsp": -0.04843905512356462,
+        "edge_strat": 0.07979506049968968
+      },
+      "blend": {
+        "n": 24553,
+        "win_rate": 0.2038040158025496,
+        "roi_bsp": -0.0606565592799251,
+        "roi_se": 0.012560064181151631,
+        "mean_bsp": 5.258633568199405,
+        "strat_null_bsp": -0.05617361189255165,
+        "edge_strat": -0.004482947387373454
+      }
+    }
+  },
+  "anchor_test": {
+    "or": {
+      "mean_rho": -0.05815218103786696,
+      "n_subraces": 58368
+    },
+    "rpr": {
+      "mean_rho": -0.8504481431450797,
+      "n_subraces": 67943
+    },
+    "draw": {
+      "mean_rho": 0.018188507577374606,
+      "n_subraces": 51648
+    },
+    "lbs": {
+      "mean_rho": 0.017016503597825836,
+      "n_subraces": 75730
+    },
+    "age": {
+      "mean_rho": 0.2337415721757125,
+      "n_subraces": 59307
+    },
+    "f_career_runs": {
+      "mean_rho": 0.03992779651283685,
+      "n_subraces": 78487
+    },
+    "f_days_since": {
+      "mean_rho": 0.09409714667055756,
+      "n_subraces": 57075
+    },
+    "f_win_rate": {
+      "mean_rho": 0.06275428703666115,
+      "n_subraces": 53720
+    },
+    "f_place_rate": {
+      "mean_rho": -0.08108926931600312,
+      "n_subraces": 56859
+    },
+    "f_jky_sr": {
+      "mean_rho": -0.11797552921896033,
+      "n_subraces": 78000
+    },
+    "f_trn_sr": {
+      "mean_rho": -0.12867144873289316,
+      "n_subraces": 78307
+    }
+  },
+  "verdict": "priced",
+  "verdict_reason": "the blend collapses onto the market (blend Brier 0.10006 vs market 0.10014, margin +0.00009 <= 0.0001); the model adds no probability edge over the market's OWN ranking of the sub-population, so it also fails to out-pick the 2nd-favourite (hit -0.24%). Any @BSP ROI on longshot picks (holdout +3.14% +/-5.11%) is the favourite-longshot artifact, not harvestable edge."
+}

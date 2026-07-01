@@ -1,0 +1,398 @@
+{
+  "target": "C_ext_2ndfav_conditional_reliability",
+  "split_cutoff": "2023-12-31",
+  "n_subraces": 81765,
+  "base_rate_discovery": 0.32432007271201846,
+  "conditions": [
+    "n_nonfav",
+    "field_size",
+    "dist_f",
+    "class_num",
+    "draw_norm",
+    "going=Good To Firm",
+    "going=Good",
+    "going=Good To Soft",
+    "going=Soft",
+    "going=Heavy",
+    "going=Standard To Fast",
+    "going=Standard",
+    "going=Standard To Slow",
+    "going=Slow",
+    "going=Other",
+    "handed=Right",
+    "handed=Figure-of-eight",
+    "handed=Other",
+    "shape=Horseshoe",
+    "shape=Triangular",
+    "shape=Pear",
+    "shape=Figure-of-eight",
+    "shape=Round",
+    "shape=Other"
+  ],
+  "discovery": {
+    "n": 57212,
+    "rate_2ndfav_correct": 0.32432007271201846,
+    "brier_uniform": 0.21913656314808955,
+    "brier_market_raw": 0.20269685229381917,
+    "brier_market_recal": 0.20215957399938952,
+    "brier_cond_only": 0.21172206808713223,
+    "brier_market_cond": 0.20200276988032775,
+    "brier_market_rpr": 0.1895764995651896,
+    "logloss_market_recal": 0.591750957098383,
+    "logloss_market_cond": 0.5913707028329779,
+    "logloss_market_rpr": 0.5589473280784765
+  },
+  "holdout": {
+    "n": 24553,
+    "rate_2ndfav_correct": 0.3260294057752617,
+    "brier_uniform": 0.21973715416461256,
+    "brier_market_raw": 0.20384495518803142,
+    "brier_market_recal": 0.2033982715931607,
+    "brier_cond_only": 0.21413663985284878,
+    "brier_market_cond": 0.20363512434762332,
+    "brier_market_rpr": 0.18990677636828576,
+    "logloss_market_recal": 0.5947161217794835,
+    "logloss_market_cond": 0.5952502408414839,
+    "logloss_market_rpr": 0.5600451953569581
+  },
+  "cond_coefficients": {
+    "n_nonfav": 0.020208693200874837,
+    "field_size": -0.06926899584079041,
+    "dist_f": 0.00034299691109701747,
+    "class_num": 0.016059806889962537,
+    "draw_norm": 0.03224172548006333,
+    "going=Good To Firm": -0.03542549123251729,
+    "going=Good": -0.017085704465461,
+    "going=Good To Soft": -0.018588165433320498,
+    "going=Soft": -0.018080027008055093,
+    "going=Heavy": -0.014480680668037363,
+    "going=Standard To Fast": -0.036544745664342855,
+    "going=Standard": 0.011674689205375116,
+    "going=Standard To Slow": -0.07676773643132531,
+    "going=Slow": 0.009770971734209943,
+    "going=Other": -0.008417021365616775,
+    "handed=Right": 0.03227284027739028,
+    "handed=Figure-of-eight": 0.014796121875104392,
+    "handed=Other": 0.0,
+    "shape=Horseshoe": -0.07546458484767071,
+    "shape=Triangular": -0.06501760849780695,
+    "shape=Pear": -0.08410765826770758,
+    "shape=Figure-of-eight": 0.014796121875104392,
+    "shape=Round": -0.09948569177002944,
+    "shape=Other": 0.0
+  },
+  "subset_probe": {
+    "base_rate_holdout": 0.3260294057752617,
+    "base_se": 0.002991552153116534,
+    "base_n": 24553,
+    "probes": [
+      {
+        "label": "n_nonfav (9=9+)",
+        "bins": [
+          {
+            "bin": 2,
+            "disc_rate": 0.6731141199226306,
+            "disc_n": 1034,
+            "hold_rate": 0.6815476190476191,
+            "hold_n": 336,
+            "hold_se": 0.02541562031519929,
+            "dev_from_base": 0.3555182132723574,
+            "dev_sigma": 13.98817769793905
+          },
+          {
+            "bin": 3,
+            "disc_rate": 0.5214421252371917,
+            "disc_n": 2635,
+            "hold_rate": 0.5102439024390244,
+            "hold_n": 1025,
+            "hold_se": 0.015614098146845893,
+            "dev_from_base": 0.18421449666376272,
+            "dev_sigma": 11.797959442247693
+          },
+          {
+            "bin": 4,
+            "disc_rate": 0.4538834951456311,
+            "disc_n": 4532,
+            "hold_rate": 0.42835595776772245,
+            "hold_n": 1989,
+            "hold_se": 0.011095524967978871,
+            "dev_from_base": 0.10232655199246077,
+            "dev_sigma": 9.222326324150508
+          },
+          {
+            "bin": 5,
+            "disc_rate": 0.3839907192575406,
+            "disc_n": 6034,
+            "hold_rate": 0.38838951310861425,
+            "hold_n": 2670,
+            "hold_se": 0.009432255980932565,
+            "dev_from_base": 0.062360107333352566,
+            "dev_sigma": 6.611367149005962
+          },
+          {
+            "bin": 6,
+            "disc_rate": 0.34075165806927044,
+            "disc_n": 6785,
+            "hold_rate": 0.3558088002532447,
+            "hold_n": 3159,
+            "hold_se": 0.008518064485278871,
+            "dev_from_base": 0.029779394477983,
+            "dev_sigma": 3.4960282972086536
+          },
+          {
+            "bin": 7,
+            "disc_rate": 0.3183850036049027,
+            "disc_n": 6935,
+            "hold_rate": 0.32016509433962265,
+            "hold_n": 3392,
+            "hold_se": 0.008010521653782623,
+            "dev_from_base": -0.005864311435639036,
+            "dev_sigma": -0.7320760980491037
+          },
+          {
+            "bin": 8,
+            "disc_rate": 0.2902581438229871,
+            "disc_n": 6508,
+            "hold_rate": 0.2825682382133995,
+            "hold_n": 3224,
+            "hold_se": 0.007929657967771897,
+            "dev_from_base": -0.04346116756186219,
+            "dev_sigma": -5.480837602138603
+          },
+          {
+            "bin": 9,
+            "disc_rate": 0.250648380148578,
+            "disc_n": 22749,
+            "hold_rate": 0.25610870061657914,
+            "hold_n": 8758,
+            "hold_se": 0.004664063295254037,
+            "dev_from_base": -0.06992070515868254,
+            "dev_sigma": -14.991371414241105
+          }
+        ]
+      },
+      {
+        "label": "going",
+        "bins": [
+          {
+            "bin": "Good",
+            "disc_rate": 0.33379283182355257,
+            "disc_n": 15234,
+            "hold_rate": 0.3333333333333333,
+            "hold_n": 7053,
+            "hold_se": 0.005613151979813034,
+            "dev_from_base": 0.007303927558071632,
+            "dev_sigma": 1.3012167823602945
+          },
+          {
+            "bin": "Good To Firm",
+            "disc_rate": 0.3261076703191996,
+            "disc_n": 8396,
+            "hold_rate": 0.3349414197105445,
+            "hold_n": 2902,
+            "hold_se": 0.008761241967367488,
+            "dev_from_base": 0.008912013935282792,
+            "dev_sigma": 1.017208972024386
+          },
+          {
+            "bin": "Good To Soft",
+            "disc_rate": 0.3150083881791199,
+            "disc_n": 7749,
+            "hold_rate": 0.3300663015278178,
+            "hold_n": 3469,
+            "hold_se": 0.007983886520209864,
+            "dev_from_base": 0.004036895752556113,
+            "dev_sigma": 0.5056304022279615
+          },
+          {
+            "bin": "Heavy",
+            "disc_rate": 0.3429969879518072,
+            "disc_n": 2656,
+            "hold_rate": 0.33852544132917967,
+            "hold_n": 963,
+            "hold_se": 0.015248919982935332,
+            "dev_from_base": 0.012496035553917983,
+            "dev_sigma": 0.819470202998112
+          },
+          {
+            "bin": "Soft",
+            "disc_rate": 0.3239673701929302,
+            "disc_n": 7723,
+            "hold_rate": 0.33078393881453155,
+            "hold_n": 3138,
+            "hold_se": 0.008399025798557981,
+            "dev_from_base": 0.00475453303926987,
+            "dev_sigma": 0.5660814900802151
+          },
+          {
+            "bin": "Standard",
+            "disc_rate": 0.3203373945641987,
+            "disc_n": 10670,
+            "hold_rate": 0.3077753779697624,
+            "hold_n": 5556,
+            "hold_se": 0.00619240481341215,
+            "dev_from_base": -0.018254027805499284,
+            "dev_sigma": -2.947809188114257
+          },
+          {
+            "bin": "Standard To Slow",
+            "disc_rate": 0.2988427501701838,
+            "disc_n": 4407,
+            "hold_rate": 0.3106444605358436,
+            "hold_n": 1381,
+            "hold_se": 0.012452501491343724,
+            "dev_from_base": -0.01538494523941808,
+            "dev_sigma": -1.2354903350232742
+          }
+        ]
+      },
+      {
+        "label": "handedness",
+        "bins": [
+          {
+            "bin": "Figure-of-eight",
+            "disc_rate": 0.35290889132821074,
+            "disc_n": 1822,
+            "hold_rate": 0.3320363164721141,
+            "hold_n": 771,
+            "hold_se": 0.016960631955705324,
+            "dev_from_base": 0.006006910696852441,
+            "dev_sigma": 0.3541678583993917
+          },
+          {
+            "bin": "Left",
+            "disc_rate": 0.3216354163911882,
+            "disc_n": 37813,
+            "hold_rate": 0.3226684407886779,
+            "hold_n": 16534,
+            "hold_se": 0.003635715856275066,
+            "dev_from_base": -0.003360964986583781,
+            "dev_sigma": -0.9244300488397412
+          },
+          {
+            "bin": "Right",
+            "disc_rate": 0.3271320475621551,
+            "disc_n": 17577,
+            "hold_rate": 0.33305739514348787,
+            "hold_n": 7248,
+            "hold_se": 0.005535982121754907,
+            "dev_from_base": 0.007027989368226184,
+            "dev_sigma": 1.2695108498649397
+          }
+        ]
+      },
+      {
+        "label": "class",
+        "bins": [
+          {
+            "bin": "C1",
+            "disc_rate": 0.31303418803418803,
+            "disc_n": 2808,
+            "hold_rate": 0.34081104400345125,
+            "hold_n": 1159,
+            "hold_se": 0.013922591255668425,
+            "dev_from_base": 0.014781638228189564,
+            "dev_sigma": 1.0617016586026244
+          },
+          {
+            "bin": "C2",
+            "disc_rate": 0.2791231200611777,
+            "disc_n": 3923,
+            "hold_rate": 0.28035190615835776,
+            "hold_n": 1705,
+            "hold_se": 0.010878015033473028,
+            "dev_from_base": -0.04567749961690393,
+            "dev_sigma": -4.1990656821440755
+          },
+          {
+            "bin": "C3",
+            "disc_rate": 0.34787186043013985,
+            "disc_n": 6649,
+            "hold_rate": 0.3524518388791594,
+            "hold_n": 2284,
+            "hold_se": 0.00999626769556739,
+            "dev_from_base": 0.02642243310389769,
+            "dev_sigma": 2.643229844236174
+          },
+          {
+            "bin": "C4",
+            "disc_rate": 0.3538229072227259,
+            "disc_n": 16545,
+            "hold_rate": 0.36274230330672746,
+            "hold_n": 7016,
+            "hold_se": 0.005739999541844328,
+            "dev_from_base": 0.03671289753146578,
+            "dev_sigma": 6.395975690212251
+          },
+          {
+            "bin": "C5",
+            "disc_rate": 0.32321734169994293,
+            "disc_n": 17530,
+            "hold_rate": 0.3235984354628422,
+            "hold_n": 7670,
+            "hold_se": 0.005342048496781106,
+            "dev_from_base": -0.002430970312419456,
+            "dev_sigma": -0.45506331772994135
+          },
+          {
+            "bin": "C6",
+            "disc_rate": 0.2819929708497002,
+            "disc_n": 9674,
+            "hold_rate": 0.27548209366391185,
+            "hold_n": 4719,
+            "hold_se": 0.006503486761588781,
+            "dev_from_base": -0.05054731211134983,
+            "dev_sigma": -7.772340279047679
+          }
+        ]
+      },
+      {
+        "label": "draw_norm (thirds)",
+        "bins": [
+          {
+            "bin": "NA",
+            "disc_rate": 0.3474065138721351,
+            "disc_n": 20725,
+            "hold_rate": 0.3546465895044387,
+            "hold_n": 8899,
+            "hold_se": 0.0050713793188958125,
+            "dev_from_base": 0.028617183729177043,
+            "dev_sigma": 5.642879763016394
+          },
+          {
+            "bin": "high",
+            "disc_rate": 0.3275007084159819,
+            "disc_n": 14116,
+            "hold_rate": 0.31332475056324427,
+            "hold_n": 6214,
+            "hold_se": 0.005884199974630596,
+            "dev_from_base": -0.012704655212017413,
+            "dev_sigma": -2.1591134337365885
+          },
+          {
+            "bin": "low",
+            "disc_rate": 0.2945516458569807,
+            "disc_n": 10572,
+            "hold_rate": 0.3073115860517435,
+            "hold_n": 4445,
+            "hold_se": 0.006920262144655711,
+            "dev_from_base": -0.01871781972351816,
+            "dev_sigma": -2.7047847801507507
+          },
+          {
+            "bin": "mid",
+            "disc_rate": 0.30663615560640733,
+            "disc_n": 11799,
+            "hold_rate": 0.3075075075075075,
+            "hold_n": 4995,
+            "hold_se": 0.00652931543324661,
+            "dev_from_base": -0.01852189826775419,
+            "dev_sigma": -2.83672897367503
+          }
+        ]
+      }
+    ]
+  },
+  "verdict": "priced",
+  "verdict_reason": "conditions do NOT beat the recalibrated market probability on holdout Brier (margin -0.00024 <= 0.0001); the post-race rpr canary DOES (+0.01349), so the test has power -- the conditioning that predicts when the 2nd-fav is right is ALREADY in the price that made it the 2nd-fav."
+}

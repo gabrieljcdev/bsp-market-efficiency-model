@@ -1,0 +1,146 @@
+{
+  "lowclass": {
+    "discovery": {
+      "n_races": 9610,
+      "n_runners": 98045,
+      "brier_market": 0.07982163444339288,
+      "brier_model": 0.08540180876763523,
+      "brier_blend": 0.07981620316589053,
+      "brier_canary": 0.023102669237412853,
+      "blend_bet": {
+        "n_bets": 9610,
+        "roi_bsp": -0.05239890738813739,
+        "roi_se": 0.016166129647205863,
+        "strat_null_bsp": -0.03663872006212515,
+        "edge_vs_strat": -0.01576018732601224
+      }
+    },
+    "holdout": {
+      "n_races": 4718,
+      "n_runners": 43764,
+      "brier_market": 0.08666200687435367,
+      "brier_model": 0.09304074053336606,
+      "brier_blend": 0.08667219767015828,
+      "brier_canary": 0.019797240730231466,
+      "blend_bet": {
+        "n_bets": 4718,
+        "roi_bsp": -0.02876568461212381,
+        "roi_se": 0.022501321507661896,
+        "strat_null_bsp": -0.03355770767007146,
+        "edge_vs_strat": 0.004792023057947653
+      }
+    },
+    "market_share_blend": 0.9721122114209759,
+    "desc": "Class 6-7 flat (soft/low-grade money)",
+    "verdict": "priced",
+    "verdict_reason": "canary powered (Brier margin +0.06686) so the test can see an edge, but none survives: blend Brier vs market -0.00001 (need >0.0001, FAILS); @BSP edge vs within-slice null +0.48% +/-2.25% (need >1%, FAILS). Within-slice, the market is efficient -- no probability edge (the decisive gate)."
+  },
+  "bigfield": {
+    "discovery": {
+      "n_races": 702,
+      "n_runners": 13021,
+      "brier_market": 0.04880644588664536,
+      "brier_model": 0.05042580676350545,
+      "brier_blend": 0.04879742656552073,
+      "brier_canary": 0.013323363527471975,
+      "blend_bet": {
+        "n_bets": 702,
+        "roi_bsp": 0.014920227920227895,
+        "roi_se": 0.08274298292783877,
+        "strat_null_bsp": -0.03992908780922135,
+        "edge_vs_strat": 0.05484931572944925
+      }
+    },
+    "holdout": {
+      "n_races": 280,
+      "n_runners": 5328,
+      "brier_market": 0.047165211551317386,
+      "brier_model": 0.049324376987848764,
+      "brier_blend": 0.047198936449335295,
+      "brier_canary": 0.014738315018288727,
+      "blend_bet": {
+        "n_bets": 280,
+        "roi_bsp": 0.2711124999999999,
+        "roi_se": 0.14494157085947995,
+        "strat_null_bsp": -0.032690162032286106,
+        "edge_vs_strat": 0.303802662032286
+      }
+    },
+    "market_share_blend": 0.9174785418780819,
+    "desc": ">=16-runner flat handicap (pricing complexity)",
+    "verdict": "priced",
+    "verdict_reason": "canary powered (Brier margin +0.03243) so the test can see an edge, but none survives: blend Brier vs market -0.00003 (need >0.0001, FAILS); @BSP edge vs within-slice null +30.38% +/-14.49% (need >1%). Within-slice, the market is efficient -- no probability edge (the decisive gate). [betting channel underpowered: 280 bets, ROI SE +/-14.5% -- its @BSP figure is noise; the verdict rests on the canary-powered Brier gate]"
+  },
+  "staying": {
+    "discovery": {
+      "n_races": 5418,
+      "n_runners": 46150,
+      "brier_market": 0.08941047829597797,
+      "brier_model": 0.09739187076549088,
+      "brier_blend": 0.08940709071053456,
+      "brier_canary": 0.03646022804231929,
+      "blend_bet": {
+        "n_bets": 5418,
+        "roi_bsp": -0.016861387966039167,
+        "roi_se": 0.019731801035802358,
+        "strat_null_bsp": -0.021207992723929283,
+        "edge_vs_strat": 0.004346604757890116
+      }
+    },
+    "holdout": {
+      "n_races": 2078,
+      "n_runners": 17338,
+      "brier_market": 0.09149539238346852,
+      "brier_model": 0.10014905189289584,
+      "brier_blend": 0.09149128685747857,
+      "brier_canary": 0.03472215592532701,
+      "blend_bet": {
+        "n_bets": 2078,
+        "roi_bsp": 0.005000240615976854,
+        "roi_se": 0.03232412433903511,
+        "strat_null_bsp": -0.0284372942842399,
+        "edge_vs_strat": 0.03343753490021675
+      }
+    },
+    "market_share_blend": 0.9816143754824378,
+    "desc": ">=12f flat (stamina/form over speed)",
+    "verdict": "priced",
+    "verdict_reason": "canary powered (Brier margin +0.05677) so the test can see an edge, but none survives: blend Brier vs market +0.00000 (need >0.0001, FAILS); @BSP edge vs within-slice null +3.34% +/-3.23% (need >1%). Within-slice, the market is efficient -- no probability edge (the decisive gate)."
+  },
+  "sellers": {
+    "discovery": {
+      "n_races": 591,
+      "n_runners": 4768,
+      "brier_market": 0.0904489857593536,
+      "brier_model": 0.09753345542128762,
+      "brier_blend": 0.09045698766456954,
+      "brier_canary": 0.04082359320620405,
+      "blend_bet": {
+        "n_bets": 591,
+        "roi_bsp": 0.015320642978003349,
+        "roi_se": 0.05563327278969068,
+        "strat_null_bsp": -0.011898809687278371,
+        "edge_vs_strat": 0.02721945266528172
+      }
+    },
+    "holdout": {
+      "n_races": 76,
+      "n_runners": 590,
+      "brier_market": 0.09699027187900572,
+      "brier_model": 0.10735257094395592,
+      "brier_blend": 0.09703335718255231,
+      "brier_canary": 0.04190728697184256,
+      "blend_bet": {
+        "n_bets": 76,
+        "roi_bsp": -0.12636184210526322,
+        "roi_se": 0.15178355046864278,
+        "strat_null_bsp": 0.043467505864472886,
+        "edge_vs_strat": -0.1698293479697361
+      }
+    },
+    "market_share_blend": 0.961999836836862,
+    "desc": "sellers/claimers flat (softest money)",
+    "verdict": "priced",
+    "verdict_reason": "canary powered (Brier margin +0.05508) so the test can see an edge, but none survives: blend Brier vs market -0.00004 (need >0.0001, FAILS); @BSP edge vs within-slice null -16.98% +/-15.18% (need >1%, FAILS). Within-slice, the market is efficient -- no probability edge (the decisive gate). [betting channel underpowered: 76 bets, ROI SE +/-15.2% -- its @BSP figure is noise; the verdict rests on the canary-powered Brier gate]"
+  }
+}

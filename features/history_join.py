@@ -81,6 +81,33 @@ def parse_distf(s):
     return float(m.group()) if m else None
 
 
+# Trailing Racing-Post country-of-breeding code: 'Atreides (IRE)', 'Gwash (GB)',
+# 'Le Curieux (FR)'. Historical results carry it; LIVE racecards give the clean
+# name -- so a live-card lookup misses the suffixed index key unless we canonicalise.
+_COUNTRY_RE = re.compile(r"\s*\(([A-Z]{2,4})\)\s*$")
+
+
+def canon_horse(name):
+    """(base, country) for a horse name.
+
+    Strips a trailing '(CC)' country code and normalises case + inner whitespace,
+    so a live-card clean name ('Atreides') canonicalises to the same base as its
+    historical key ('Atreides (IRE)'). `country` is None when no code is present.
+    Used ONLY as a fallback when an exact-name lookup misses, and only when a base
+    maps to a single country code (see HistoryIndex) -- so two genuinely different
+    horses that share a name but differ in country ('X (IRE)' vs 'X (USA)') are
+    never silently merged."""
+    if name is None:
+        return (None, None)
+    s = str(name).strip()
+    m = _COUNTRY_RE.search(s)
+    cc = None
+    if m:
+        cc = m.group(1)
+        s = s[:m.start()]
+    return (" ".join(s.split()).lower(), cc)
+
+
 def parse_class(s):
     """'Class 4' -> 4 ; 'Class 1' -> 1 ; blank/other -> None.
     Lower integer = higher class (Class 1 is the top)."""
@@ -134,6 +161,34 @@ class HistoryIndex:
             "jockey": {k: [x["ord"] for x in v] for k, v in self.jockey.items()},
             "combo": {k: [x["ord"] for x in v] for k, v in self.combo.items()},
         }
+
+        # Canonical horse fallback for LIVE-CARD names (which lack the historical
+        # '(CC)' country suffix). Exact name is always tried FIRST in
+        # prior_horse_runs, so the historical CSV path -- suffixed on both sides --
+        # never reaches this and is byte-for-byte unaffected. This only rescues a
+        # clean-name MISS. A base that maps to MORE THAN ONE distinct country code
+        # is ambiguous (possibly different horses) and is REFUSED, never merged --
+        # a silent wrong-merge would be worse than the miss.
+        groups = {}                       # base -> list[original horse key]
+        codes = {}                        # base -> set[country code]
+        for key in self.horse:
+            base, cc = canon_horse(key)
+            groups.setdefault(base, []).append(key)
+            s = codes.setdefault(base, set())
+            if cc:
+                s.add(cc)
+        self._canon_horse = {}            # base -> (runs[], ords[])   (unambiguous)
+        self._canon_ambiguous = set()     # bases with >1 country code -> refused
+        for base, keys in groups.items():
+            if len(codes[base]) > 1:
+                self._canon_ambiguous.add(base)
+            elif len(keys) == 1:          # reuse the existing sorted lists (no copy)
+                k = keys[0]
+                self._canon_horse[base] = (self.horse[k], self._ords["horse"][k])
+            else:                         # merge case-variant keys, re-sort by ord
+                merged = [run for k in keys for run in self.horse[k]]
+                merged.sort(key=lambda r: r["ord"])
+                self._canon_horse[base] = (merged, [r["ord"] for r in merged])
 
         # Strike-rate BUCKETS with prefix-win sums, so a strictly-prior SR is
         # O(log n) instead of rescanning a big stable's whole history per runner.
@@ -208,7 +263,21 @@ class HistoryIndex:
         return runs[:bisect_left(self._ords[kind][key], race_ord)]
 
     def prior_horse_runs(self, horse, race_ord):
-        return self._prior("horse", horse, race_ord)
+        """Strictly-prior runs for a horse. EXACT name is tried first (so the
+        historical CSV path -- suffixed on both sides -- is unaffected); a MISS
+        falls back to the country-code/case-canonical key, which rescues live-card
+        clean names. An ambiguous canonical base (>1 country code) returns []."""
+        runs = self.horse.get(horse)
+        if runs is not None:
+            return runs[:bisect_left(self._ords["horse"][horse], race_ord)]
+        base, _ = canon_horse(horse)
+        if base is None or base in self._canon_ambiguous:
+            return []
+        hit = self._canon_horse.get(base)
+        if hit is None:
+            return []
+        runs, ords = hit
+        return runs[:bisect_left(ords, race_ord)]
 
     def prior_trainer_runs(self, trainer, race_ord):
         return self._prior("trainer", trainer, race_ord)
