@@ -67,6 +67,16 @@ R2_EPS = 1e-3        # holdout residual-R^2 below this = no differential predict
 EDGE_TOL = 0.01      # +/-1pp floor on the differential morning-strike edge
 DECILE = 0.10        # fraction selected as predicted steamers / drifters
 
+# --- MIRROR Gate 2 (lay predicted drifters) constants ---------------------- #
+# Pre-registered at 2% commission (the forward-ledger exchange rate), independent
+# of the back-side COMMISSION above. The strikeability haircut is the decisive
+# test: morning_wap is a volume-weighted AVERAGE, not a price you can lay -- the
+# quotable lay sits ABOVE it, so re-strike the lay at morning_wap x (1 + h).
+LAY_COMMISSION = 0.02
+LAY_HAIRCUTS = (0.0, 0.025, 0.05, 0.10)
+LAY_EDGE_TOL = 0.01      # picks must beat lay-ALL by >= +1pp AND be absolute-positive
+LAY_SPREAD_REF = 0.05    # a realistic lay strikeability haircut; die at/below => ARTIFACT
+
 # Morning-price bands (same edges as the main verdict's BSP-band null).
 _BAND_EDGES = (1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 8.0,
                10.0, 15.0, 20.0, 30.0, 50.0, float("inf"))
@@ -203,6 +213,116 @@ def kill_test(mask, pred, m, b, won, bands, band_morning_edge):
 
 
 # --------------------------------------------------------------------------- #
+# 3b. MIRROR Gate 2: LAY predicted in-band DRIFTERS at morning, settle race.    #
+#     No new features, no re-fit -- reuses the SAME predicted residual drift.   #
+# --------------------------------------------------------------------------- #
+def _top_k(idx, p, frac):
+    k = max(1, int(len(idx) * frac))
+    return idx[np.argsort(p)[-k:]]
+
+
+def inband_drifters(mask, pred, bands):
+    """Top decile of predicted residual drift WITHIN each morning band, pooled --
+    the exact mirror of kill_test's in-band steamers, on the drift-OUT side."""
+    idx = np.where(mask)[0]
+    sel = []
+    for bi in range(_N_BANDS):
+        bidx = idx[bands[idx] == bi]
+        if len(bidx) >= 20:
+            sel.extend(_top_k(bidx, pred[bidx], DECILE).tolist())
+    return np.array(sel, dtype=int) if sel else idx[:0]
+
+
+def _lay_pnl(strike, won, comm):
+    """Lay P&L per £1 backer-stake-equivalent: if the horse LOSES you keep the
+    backer's stake (net commission); if it WINS you pay liability (strike-1).
+    Commission bites only the winning (lay-wins) side."""
+    return np.where(won > 0, -(strike - 1.0), (1.0 - comm))
+
+
+def lay_gate2(pick_idx, all_idx, m, b, won, comm, haircuts):
+    """LAY the picks at morning_wap x (1+h) for each haircut h, settle on the race,
+    vs the lay-ALL-at-the-same-strike null. Holdout only. Also a lay-at-BSP context
+    figure and the per-trade liability distribution at £20 backer-stake-equivalent."""
+    out = {"n_picks": len(pick_idx), "n_all": len(all_idx), "commission": comm,
+           "haircuts": {}}
+    for h in haircuts:
+        pk = _lay_pnl(m[pick_idx] * (1 + h), won[pick_idx], comm)
+        al = _lay_pnl(m[all_idx] * (1 + h), won[all_idx], comm)
+        roi_pk, roi_al = float(pk.mean()), float(al.mean())
+        out["haircuts"][f"{h:.3f}"] = {
+            "h": h, "lay_picks_roi": roi_pk,
+            "lay_picks_se": float(pk.std(ddof=1) / math.sqrt(len(pk))) if len(pk) > 1 else None,
+            "lay_all_roi": roi_al, "edge_over_layall": roi_pk - roi_al,
+        }
+    out["lay_at_bsp_roi_context"] = float(_lay_pnl(b[pick_idx], won[pick_idx], comm).mean())
+    out["mean_lay_clv_is_drift"] = float((b[pick_idx] / m[pick_idx] - 1.0).mean())
+    out["win_rate_picks"] = float(won[pick_idx].mean())
+    liab = 20.0 * (m[pick_idx] - 1.0)     # liability to win £20-equivalent, lay @ morning
+    out["liability_gbp_per_trade"] = {
+        "mean": float(liab.mean()), "p10": float(np.percentile(liab, 10)),
+        "p25": float(np.percentile(liab, 25)), "median": float(np.median(liab)),
+        "p75": float(np.percentile(liab, 75)), "p90": float(np.percentile(liab, 90)),
+        "max": float(liab.max()), "mean_morning_price": float(m[pick_idx].mean()),
+    }
+    return out
+
+
+def verdict_lay(lg, tol=LAY_EDGE_TOL, spread_ref=LAY_SPREAD_REF):
+    """HARVESTABLE / ARTIFACT / PRICED, decided on holdout.
+
+    Three ways to fail past the h=0 null, each catching the unquotable-WAP trap:
+      (A) absolute picks ROI dies at a flat haircut <= spread_ref (the literal test); OR
+      (B) the QUOTABLE-CLOSE cross-check: laying the SAME picks at BSP -- the deepest,
+          most strikeable price that exists -- does not itself clear +tol. If the edge
+          isn't there at the close, it lived in the morning_wap average, not a real
+          mispricing (this is the strikeability haircut taken to its limit); OR
+      (C) the lay-ALL base is positive at morning (you 'profit' laying EVERYTHING) and
+          dies under the haircut -- a signature that the morning_wap itself is the
+          artifact, so any edge stacked on it inherits the doubt.
+    A flat % haircut alone is too coarse for a longshot-clustered lay book, so (B)/(C)
+    are needed -- otherwise a WAP artifact survives 5% purely because the flat penalty
+    understates the real spread on 30/1+ shots."""
+    hc = lg["haircuts"]
+    h0 = hc["0.000"]
+    gate0 = (h0["lay_picks_roi"] > 0) and (h0["edge_over_layall"] >= tol)
+    death_abs = next((hc[k]["h"] for k in sorted(hc, key=lambda k: hc[k]["h"])
+                      if hc[k]["lay_picks_roi"] <= 0), None)
+    layall_death = next((hc[k]["h"] for k in sorted(hc, key=lambda k: hc[k]["h"])
+                         if hc[k]["lay_all_roi"] <= 0), None)
+    bsp_ctx = lg["lay_at_bsp_roi_context"]
+    L = lg["liability_gbp_per_trade"]
+
+    if not gate0:
+        return "PRICED", (
+            f"lay-drifters@morning ROI {h0['lay_picks_roi']:+.2%} (edge over lay-ALL "
+            f"{h0['edge_over_layall']:+.2%}) fails the null even at a ZERO haircut -- there is "
+            f"no lay edge to strike; same PRICED conclusion as the back side.")
+
+    flat_kills = death_abs is not None and death_abs <= spread_ref
+    close_kills = bsp_ctx < tol           # (B) no edge at the quotable close
+    base_is_wap = (h0["lay_all_roi"] > 0) and (layall_death is not None
+                                               and layall_death <= spread_ref)
+    if flat_kills or close_kills or base_is_wap:
+        return "ARTIFACT", (
+            f"lay-drifters@morning clears the h=0 null ({h0['lay_picks_roi']:+.2%} ROI, edge "
+            f"{h0['edge_over_layall']:+.2%}) but this is the UNQUOTABLE morning_wap, not a "
+            f"strikeable lay: laying the SAME picks at the quotable CLOSE (BSP) returns only "
+            f"{bsp_ctx:+.2%} (< +{tol:.0%}) -- the edge evaporates at the deepest real price; the "
+            f"lay-ALL base is {h0['lay_all_roi']:+.2%} at morning (you cannot profit laying "
+            f"EVERYTHING) and dies by ~{(layall_death or spread_ref):.1%} haircut; and the picks "
+            f"cluster in the longshot tail (mornAvg {L['mean_morning_price']:.0f}, p90 liability "
+            f"£{L['p90']:,.0f}, max £{L['max']:,.0f}) where a flat % haircut understates real "
+            f"spread/fill. The morning->close drift is real but only capturable at a price you "
+            f"cannot strike -- ARTIFACT, mirroring the back-side PRICED verdict.")
+    return "HARVESTABLE", (
+        f"lay-drifters@morning ROI {h0['lay_picks_roi']:+.2%} (edge {h0['edge_over_layall']:+.2%}) "
+        f"survives a ~{spread_ref:.0%} haircut AND still returns {bsp_ctx:+.2%} laid at the "
+        f"quotable close (BSP) -- a genuinely strikeable lay edge (now scrutinise the liability "
+        f"tail: p90 £{L['p90']:,.0f}, max £{L['max']:,.0f} per £20-equivalent).")
+
+
+# --------------------------------------------------------------------------- #
 # 4. Anchor / leakage: feature-vs-drift correlation, canary strength.          #
 # --------------------------------------------------------------------------- #
 def anchor(disc_mask, X, drift, wap_move):
@@ -318,6 +438,12 @@ def main():
         "holdout_resid_r2": resid_r2(hold_mask & cmask, pred_can),
     }
 
+    # --- MIRROR Gate 2: LAY predicted in-band drifters, HOLDOUT only, 2% comm ---
+    hold_idx = np.where(hold_mask)[0]
+    drift_idx = inband_drifters(hold_mask, pred_feat, bands)
+    lay = lay_gate2(drift_idx, hold_idx, m, b, won, LAY_COMMISSION, LAY_HAIRCUTS)
+    lay["verdict"], lay["verdict_reason"] = verdict_lay(lay)
+
     res = {
         "probe": "clv_price_movement_morning_to_close",
         "split_cutoff": SPLIT_CUTOFF, "commission": COMMISSION,
@@ -327,6 +453,7 @@ def main():
                                  for i in range(_N_BANDS)},
         "discovery": disc_res, "holdout": hold_res,
         "canary": canary,
+        "lay_gate2_mirror_holdout": lay,
         "anchor_feature_vs_drift_corr": anchor(disc_mask, X, drift, wap_move),
     }
     vd, reason = verdict(res)
@@ -373,9 +500,36 @@ def _report(res):
     for k, v in res["anchor_feature_vs_drift_corr"].items():
         tag = "<- CANARY" if "CANARY" in k else ("ok (weak)" if abs(v) < 0.1 else "note")
         print(f"  {k:<38}{v:>+9.4f}   {tag}")
+
+    lg = res.get("lay_gate2_mirror_holdout")
+    if lg:
+        print("\n" + "-" * 76)
+        print(f"MIRROR GATE 2: LAY predicted in-band DRIFTERS @morning, settle race "
+              f"(holdout, {lg['commission']:.0%} comm)")
+        print(f"  n picks {lg['n_picks']:,} | win {lg['win_rate_picks']:.1%} | "
+              f"mean lay-CLV(=drift) {pc(lg['mean_lay_clv_is_drift'])} | "
+              f"lay@BSP ctx {pc(lg['lay_at_bsp_roi_context'])}")
+        print("  STRIKEABILITY HAIRCUT h on the unquotable WAP (lay strike = wap x (1+h)):")
+        print(f"    {'h':>6}{'lay picks ROI':>16}{'lay-ALL ROI':>14}{'edge vs lay-ALL':>18}")
+        for key in sorted(lg["haircuts"], key=lambda k: lg["haircuts"][k]["h"]):
+            c = lg["haircuts"][key]
+            se = f" +/-{c['lay_picks_se']:.2%}" if c.get("lay_picks_se") else ""
+            flag = "  <- null: >0 & edge>=+1%?" if c["h"] == 0.0 else ""
+            ok = "PASS" if (c["lay_picks_roi"] > 0 and c["edge_over_layall"] >= LAY_EDGE_TOL) else "fail"
+            print(f"    {c['h']:>5.1%}{pc(c['lay_picks_roi']):>13}{se:<8}"
+                  f"{pc(c['lay_all_roi']):>10}{pc(c['edge_over_layall']):>14}   {ok}{flag}")
+        L = lg["liability_gbp_per_trade"]
+        print(f"  LIABILITY per trade @ £20 backer-stake (lay@morning, mornAvg {L['mean_morning_price']:.1f}):")
+        print(f"    mean £{L['mean']:,.0f} | p10 £{L['p10']:,.0f}  p25 £{L['p25']:,.0f}  "
+              f"med £{L['median']:,.0f}  p75 £{L['p75']:,.0f}  p90 £{L['p90']:,.0f}  max £{L['max']:,.0f}")
+        print(f"  LAY VERDICT: {lg['verdict']}")
+        print(f"  {lg['verdict_reason']}")
+
     print("\n" + "=" * 76)
-    print(f"VERDICT: {res['verdict'].upper()}")
+    print(f"BACK-SIDE VERDICT: {res['verdict'].upper()}")
     print(res["verdict_reason"])
+    if lg:
+        print(f"\nLAY-SIDE (MIRROR) VERDICT: {lg['verdict']}")
     print("=" * 76)
 
 

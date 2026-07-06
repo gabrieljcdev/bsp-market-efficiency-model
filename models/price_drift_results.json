@@ -106,6 +106,56 @@
     "discovery_resid_r2": 0.7554343759748459,
     "holdout_resid_r2": 0.71157088759208
   },
+  "lay_gate2_mirror_holdout": {
+    "n_picks": 21304,
+    "n_all": 213103,
+    "commission": 0.02,
+    "haircuts": {
+      "0.000": {
+        "h": 0.0,
+        "lay_picks_roi": 0.09392461509575685,
+        "lay_picks_se": 0.0310575925848584,
+        "lay_all_roi": 0.04435732955425329,
+        "edge_over_layall": 0.04956728554150356
+      },
+      "0.025": {
+        "h": 0.025,
+        "lay_picks_roi": 0.0717148305482541,
+        "lay_picks_se": 0.0318346244960005,
+        "lay_all_roi": 0.020908480875445456,
+        "edge_over_layall": 0.05080634967280864
+      },
+      "0.050": {
+        "h": 0.05,
+        "lay_picks_roi": 0.04950504600075117,
+        "lay_picks_se": 0.03261165643260159,
+        "lay_all_roi": -0.0025403678033625744,
+        "edge_over_layall": 0.05204541380411374
+      },
+      "0.100": {
+        "h": 0.1,
+        "lay_picks_roi": 0.005085476905745501,
+        "lay_picks_se": 0.03416572037523252,
+        "lay_all_roi": -0.049438065160978414,
+        "edge_over_layall": 0.05452354206672391
+      }
+    },
+    "lay_at_bsp_roi_context": 0.0082402365752912,
+    "mean_lay_clv_is_drift": 0.5485610476444711,
+    "win_rate_picks": 0.11579984979346601,
+    "liability_gbp_per_trade": {
+      "mean": 724.4794404806609,
+      "p10": 58.0,
+      "p25": 105.55000000000001,
+      "median": 213.79999999999998,
+      "p75": 475.4,
+      "p90": 1270.14,
+      "max": 19980.0,
+      "mean_morning_price": 37.223972024033046
+    },
+    "verdict": "ARTIFACT",
+    "verdict_reason": "lay-drifters@morning clears the h=0 null (+9.39% ROI, edge +4.96%) but this is the UNQUOTABLE morning_wap, not a strikeable lay: laying the SAME picks at the quotable CLOSE (BSP) returns only +0.82% (< +1%) -- the edge evaporates at the deepest real price; the lay-ALL base is +4.44% at morning (you cannot profit laying EVERYTHING) and dies by ~5.0% haircut; and the picks cluster in the longshot tail (mornAvg 37, p90 liability \u00a31,270, max \u00a319,980) where a flat % haircut understates real spread/fill. The morning->close drift is real but only capturable at a price you cannot strike -- ARTIFACT, mirroring the back-side PRICED verdict."
+  },
   "anchor_feature_vs_drift_corr": {
     "or": -0.060129538250796845,
     "draw": 0.04032664358761825,
