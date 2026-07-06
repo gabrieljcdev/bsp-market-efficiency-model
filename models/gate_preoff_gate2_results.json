@@ -1,0 +1,84 @@
+{
+  "n_records": 56847,
+  "Q2": {
+    "n_total": 51744,
+    "discovery": {
+      "n": 42663,
+      "edge_ticks_vs_baseline": -0.003,
+      "net_return_mean": 0.06518,
+      "net_return_se": 0.00139,
+      "mean_model_ticks": 0.637,
+      "mean_baseline_ticks": 0.64
+    },
+    "holdout": {
+      "n": 9081,
+      "edge_ticks_vs_baseline": 0.078,
+      "net_return_mean": 0.04447,
+      "net_return_se": 0.00264,
+      "mean_model_ticks": 0.289,
+      "mean_baseline_ticks": 0.211
+    },
+    "week_even": {
+      "n": 25416,
+      "edge_ticks_vs_baseline": 0.002,
+      "net_return_mean": 0.06433,
+      "net_return_se": 0.00177,
+      "mean_model_ticks": 0.638,
+      "mean_baseline_ticks": 0.636
+    },
+    "week_odd": {
+      "n": 26328,
+      "edge_ticks_vs_baseline": 0.02,
+      "net_return_mean": 0.05886,
+      "net_return_se": 0.00173,
+      "mean_model_ticks": 0.515,
+      "mean_baseline_ticks": 0.495
+    },
+    "verdict": "FAIL"
+  },
+  "Q3": {
+    "n_total": 51969,
+    "discovery": {
+      "n": 42821,
+      "raw_clv_mean": -0.0797,
+      "edge_vs_band_course_null": 0.0,
+      "edge_se": 0.001149,
+      "p": 1.0
+    },
+    "holdout": {
+      "n": 9148,
+      "raw_clv_mean": -0.07274,
+      "edge_vs_band_course_null": 0.0,
+      "edge_se": 0.002214,
+      "p": 1.0
+    },
+    "verdict": "FAIL",
+    "note": "CLV vs band-course null (price-only); Brier needs win/loss (not extracted)."
+  },
+  "Q6": {
+    "n_filled": 60019,
+    "discovery": {
+      "n": 48600,
+      "pnl_vs_zero_mean": -0.011276,
+      "pnl_se": 0.000486,
+      "p_vs_zero": 0.0,
+      "edge_vs_band_null": -0.0,
+      "edge_p": 1.0
+    },
+    "holdout": {
+      "n": 11419,
+      "pnl_vs_zero_mean": -0.010959,
+      "pnl_se": 0.001086,
+      "p_vs_zero": 0.0,
+      "edge_vs_band_null": 0.0,
+      "edge_p": 1.0
+    },
+    "verdict": "FAIL",
+    "adverse_selection_filled_back": {
+      "t30_25": -0.208,
+      "t30_15": -0.508,
+      "t30_10": -0.584
+    }
+  },
+  "slices": {}
+}
