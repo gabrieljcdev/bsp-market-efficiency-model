@@ -30,3 +30,5 @@ models/*.bak.csv
 models/reliability.txt
 models/_*.log
 *.log
+models/gate_preoff_gate1_records.pkl
+models/gate_preoff_gate2_records.pkl
