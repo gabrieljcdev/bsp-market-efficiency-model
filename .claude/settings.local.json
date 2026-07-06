@@ -105,7 +105,31 @@
       "Bash(ls -la data/joined/)",
       "Bash(ls -la models/*.csv)",
       "Bash(head -1 data/joined/joined_gb_2018_2026_feat.csv)",
-      "Bash(head -1 data/joined/joined_gb_2018_2026.csv)"
+      "Bash(head -1 data/joined/joined_gb_2018_2026.csv)",
+      "Bash(timeout 8 curl -sI https://www.racingpost.com)",
+      "Bash(awk -F= '/^\\(EMAIL|ACCESS_TOKEN|REFRESH_TOKEN\\)=/{print $1\": \"length\\($2\\)\" chars\"}' vendor/rpscrape/.env)",
+      "Bash(xargs grep -ln \"race_probs\\\\|def.*runner_view\\\\|model_prob\")",
+      "Bash(command -v wsl)",
+      "Read(//h//**)",
+      "Bash(awk '{sum+=$5; n++} END{printf \"files=%d total_bytes=%d total_GiB=%.2f\\\\n\", n, sum, sum/1073741824}')",
+      "Bash(command -v tar bunzip2 bzip2 python3)",
+      "Bash(tar -tf \"/h/data \\(7\\).tar\")",
+      "Bash(mkdir -p /c/Users/gabriel/AppData/Local/Temp/claude/--wsl-localhost-Ubuntu-22-04-home-gabriel-projects-racing-project/be653a4d-406f-4c2d-9ee2-3bce5ac867ca/scratchpad/listings)",
+      "Bash(time tar -tf \"/h/data \\(7\\).tar\")",
+      "Bash(echo \"exit=$?\")",
+      "Read(//c/Users/gabriel/AppData/Local/Temp/claude/--wsl-localhost-Ubuntu-22-04-home-gabriel-projects-racing-project/be653a4d-406f-4c2d-9ee2-3bce5ac867ca/scratchpad/listings/**)",
+      "Bash(awk -F/ '{print $2\"/\"$3\"/\"$4}')",
+      "Bash(sort -u -t/ -k1,1n)",
+      "Bash(awk -F/ '{print $3}')",
+      "Bash(awk -F/ 'BEGIN{m[\"Jan\"]=1;m[\"Feb\"]=2;m[\"Mar\"]=3;m[\"Apr\"]=4;m[\"May\"]=5;m[\"Jun\"]=6;m[\"Jul\"]=7;m[\"Aug\"]=8;m[\"Sep\"]=9;m[\"Oct\"]=10;m[\"Nov\"]=11;m[\"Dec\"]=12} {printf \"%04d-%02d-%02d\\\\n\",$2,m[$3],$4}')",
+      "Bash(grep -vE '^\\\\s*$')",
+      "Bash(tail -8 output/pull_logs/scrape_pro_window.log)",
+      "Bash(ls -la vendor/rpscrape/data/region/gb/all/2015_05_01_2016_04_30.csv)",
+      "Skill(update-config)",
+      "Bash(tail -3 output/pull_logs/scrape_leadin_2014.log)",
+      "Bash(ls -la vendor/rpscrape/data/region/gb/all/2014_05_01_2015_04_30.csv)",
+      "Bash(tail -5 output/pull_logs/gate_preoff_gate2_extract.log)",
+      "Bash(ls -la models/gate_preoff_gate2_records.pkl)"
     ]
   }
 }

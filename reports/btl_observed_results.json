@@ -1,0 +1,674 @@
+[
+  {
+    "course": "Sandown",
+    "user_off": "12:50",
+    "card_off": "13:50",
+    "desc": "5f Hcap",
+    "mkt_id": "1.259648496",
+    "thin": false,
+    "nr": [],
+    "card_found": true,
+    "field_active": 5,
+    "match": [
+      {
+        "name": "Comical Point",
+        "matched": true,
+        "card_name": "Comical Point"
+      },
+      {
+        "name": "Westport",
+        "matched": true,
+        "card_name": "Westport"
+      },
+      {
+        "name": "Havana Hurricane",
+        "matched": true,
+        "card_name": "Havana Hurricane"
+      },
+      {
+        "name": "One And Gone",
+        "matched": true,
+        "card_name": "One And Gone"
+      }
+    ],
+    "cands": [
+      {
+        "horse": "Comical Point",
+        "ex1": 2.72,
+        "ex2": 2.86,
+        "sb": 2.4,
+        "band": "2.5-3.0",
+        "d_med": 0.0,
+        "d_p75": 0.17241379310344818,
+        "bsp_med": 2.72,
+        "bsp_p75": 3.188965517241379,
+        "breakeven_lay": 2.72,
+        "net_med": 0.0,
+        "net_p75": -2.9411764705882337,
+        "p_sb": 0.3771428571428572,
+        "p_ex2": 0.35527543620942226,
+        "div_pp": 2.1867420933434967,
+        "arb": false
+      },
+      {
+        "horse": "Westport",
+        "ex1": 3.25,
+        "ex2": 2.9,
+        "sb": 2.88,
+        "band": "3.0-4.0",
+        "d_med": 0.026472546340095993,
+        "d_p75": 0.22523760023760014,
+        "bsp_med": 3.3360357756053114,
+        "bsp_p75": 3.982022200772201,
+        "breakeven_lay": 3.25,
+        "net_med": -0.5157964805680204,
+        "net_p75": -3.676635457382662,
+        "p_sb": 0.31428571428571433,
+        "p_ex2": 0.3503750853651544,
+        "div_pp": -3.608937107944005,
+        "arb": false
+      },
+      {
+        "horse": "Havana Hurricane",
+        "ex1": 4.7,
+        "ex2": 4.7,
+        "sb": 4.0,
+        "band": "4.0-5.0",
+        "d_med": 0.03524229074889873,
+        "d_p75": 0.2666666666666666,
+        "bsp_med": 4.865638766519824,
+        "bsp_p75": 5.953333333333333,
+        "breakeven_lay": 4.7,
+        "net_med": -0.6808510638297882,
+        "net_p75": -4.2105263157894735,
+        "p_sb": 0.2262857142857143,
+        "p_ex2": 0.21618888245935056,
+        "div_pp": 1.0096831826363757,
+        "arb": false
+      },
+      {
+        "horse": "One And Gone",
+        "ex1": 13.0,
+        "ex2": 13.0,
+        "sb": 11.0,
+        "band": "10-15",
+        "d_med": 0.10374639769452454,
+        "d_p75": 0.4627123790563772,
+        "bsp_med": 14.34870317002882,
+        "bsp_p75": 19.015260927732903,
+        "breakeven_lay": 13.0,
+        "net_med": -1.879895561357705,
+        "net_p75": -6.3267719024143565,
+        "p_sb": 0.0822857142857143,
+        "p_ex2": 0.0781605959660729,
+        "div_pp": 0.4125118319641394,
+        "arb": false
+      }
+    ],
+    "nr_confirmed": {},
+    "book_sum_sb": 1.1047979797979797,
+    "book_sum_ex2": 0.9841669702271316
+  },
+  {
+    "course": "Sandown",
+    "user_off": "13:25",
+    "card_off": "14:25",
+    "desc": "5f Listed",
+    "mkt_id": "1.259648502",
+    "thin": false,
+    "nr": [
+      "Divine Whisper"
+    ],
+    "card_found": true,
+    "field_active": 8,
+    "match": [
+      {
+        "name": "Ronson",
+        "matched": true,
+        "card_name": "Ronson"
+      },
+      {
+        "name": "Miss Lizzy",
+        "matched": true,
+        "card_name": "Miss Lizzy"
+      },
+      {
+        "name": "Bill The Bull",
+        "matched": true,
+        "card_name": "Bill The Bull"
+      },
+      {
+        "name": "A Bear Affair",
+        "matched": true,
+        "card_name": "A Bear Affair"
+      }
+    ],
+    "cands": [
+      {
+        "horse": "Ronson",
+        "ex1": 4.6,
+        "ex2": 4.7,
+        "sb": 3.2,
+        "band": "4.0-5.0",
+        "d_med": 0.03524229074889873,
+        "d_p75": 0.2666666666666666,
+        "bsp_med": 4.762114537444933,
+        "bsp_p75": 5.826666666666666,
+        "breakeven_lay": 4.6,
+        "net_med": -0.680851063829786,
+        "net_p75": -4.2105263157894735,
+        "p_sb": 0.34942820838627703,
+        "p_ex2": 0.28876976045443337,
+        "div_pp": 6.065844793184366,
+        "arb": false
+      },
+      {
+        "horse": "Miss Lizzy",
+        "ex1": 5.1,
+        "ex2": 5.1,
+        "sb": 5.0,
+        "band": "5.0-6.0",
+        "d_med": 0.042389210019267765,
+        "d_p75": 0.29982046678635554,
+        "bsp_med": 5.316184971098266,
+        "bsp_p75": 6.629084380610413,
+        "breakeven_lay": 5.1,
+        "net_med": -0.813308687615526,
+        "net_p75": -4.61325966850829,
+        "p_sb": 0.2236340533672173,
+        "p_ex2": 0.2661211517913406,
+        "div_pp": -4.248709842412329,
+        "arb": false
+      },
+      {
+        "horse": "Bill The Bull",
+        "ex1": 6.0,
+        "ex2": 6.0,
+        "sb": 5.0,
+        "band": "6.0-8.0",
+        "d_med": 0.055625790139064435,
+        "d_p75": 0.3370473537604457,
+        "bsp_med": 6.333754740834387,
+        "bsp_p75": 8.022284122562674,
+        "breakeven_lay": 6.0,
+        "net_med": -1.0538922155688613,
+        "net_p75": -5.041666666666666,
+        "p_sb": 0.2236340533672173,
+        "p_ex2": 0.22620297902263947,
+        "div_pp": -0.25689256554221607,
+        "arb": false
+      },
+      {
+        "horse": "A Bear Affair",
+        "ex1": 6.2,
+        "ex2": 6.2,
+        "sb": 5.5,
+        "band": "6.0-8.0",
+        "d_med": 0.055625790139064435,
+        "d_p75": 0.3370473537604457,
+        "bsp_med": 6.5448798988622,
+        "bsp_p75": 8.289693593314764,
+        "breakeven_lay": 6.2,
+        "net_med": -1.0538922155688613,
+        "net_p75": -5.041666666666669,
+        "p_sb": 0.20330368487928846,
+        "p_ex2": 0.21890610873158659,
+        "div_pp": -1.5602423852298126,
+        "arb": false
+      }
+    ],
+    "nr_confirmed": {
+      "Divine Whisper": true
+    },
+    "book_sum_sb": 0.8943181818181818,
+    "book_sum_ex2": 0.7368013780666693
+  },
+  {
+    "course": "Doncaster",
+    "user_off": "13:00",
+    "card_off": "14:00",
+    "desc": "6f Nov Stks",
+    "mkt_id": "1.259648089",
+    "thin": false,
+    "nr": [
+      "Give Hand"
+    ],
+    "card_found": true,
+    "field_active": 11,
+    "match": [
+      {
+        "name": "Jumeirah Storm",
+        "matched": true,
+        "card_name": "Jumeirah Storm"
+      },
+      {
+        "name": "Launch Sequence",
+        "matched": true,
+        "card_name": "Launch Sequence"
+      },
+      {
+        "name": "Sultan Darius",
+        "matched": true,
+        "card_name": "Sultan Darius"
+      },
+      {
+        "name": "No More Pino",
+        "matched": true,
+        "card_name": "No More Pino"
+      }
+    ],
+    "cands": [
+      {
+        "horse": "Jumeirah Storm",
+        "ex1": 3.05,
+        "ex2": 3.05,
+        "sb": null,
+        "band": "3.0-4.0",
+        "d_med": 0.026472546340095993,
+        "d_p75": 0.22523760023760014,
+        "bsp_med": 3.130741266337292,
+        "bsp_p75": 3.73697468072468,
+        "breakeven_lay": 3.05,
+        "net_med": -0.5157964805680226,
+        "net_p75": -3.67663545738266,
+        "p_sb": null,
+        "p_ex2": null,
+        "div_pp": null,
+        "arb": false
+      },
+      {
+        "horse": "Launch Sequence",
+        "ex1": 3.55,
+        "ex2": 3.55,
+        "sb": 2.88,
+        "band": "3.0-4.0",
+        "d_med": 0.026472546340095993,
+        "d_p75": 0.22523760023760014,
+        "bsp_med": 3.64397753950734,
+        "bsp_p75": 4.34959348084348,
+        "breakeven_lay": 3.55,
+        "net_med": -0.5157964805680226,
+        "net_p75": -3.67663545738266,
+        "p_sb": 0.6097560975609756,
+        "p_ex2": 0.5957745338765819,
+        "div_pp": 1.3981563684393739,
+        "arb": false
+      },
+      {
+        "horse": "Sultan Darius",
+        "ex1": 10.5,
+        "ex2": 9.6,
+        "sb": 9.0,
+        "band": "10-15",
+        "d_med": 0.10374639769452454,
+        "d_p75": 0.4627123790563772,
+        "bsp_med": 11.589337175792508,
+        "bsp_p75": 15.35847998009196,
+        "breakeven_lay": 10.5,
+        "net_med": -1.8798955613577029,
+        "net_p75": -6.3267719024143565,
+        "p_sb": 0.1951219512195122,
+        "p_ex2": 0.22031245783977765,
+        "div_pp": -2.519050662026545,
+        "arb": false
+      },
+      {
+        "horse": "No More Pino",
+        "ex1": 11.0,
+        "ex2": 11.5,
+        "sb": 9.0,
+        "band": "10-15",
+        "d_med": 0.10374639769452454,
+        "d_p75": 0.4627123790563772,
+        "bsp_med": 12.141210374639769,
+        "bsp_p75": 16.08983616962015,
+        "breakeven_lay": 11.0,
+        "net_med": -1.8798955613577006,
+        "net_p75": -6.3267719024143565,
+        "p_sb": 0.1951219512195122,
+        "p_ex2": 0.18391300828364046,
+        "div_pp": 1.120894293587174,
+        "arb": false
+      }
+    ],
+    "nr_confirmed": {
+      "Give Hand": true
+    },
+    "book_sum_sb": 0.5694444444444444,
+    "book_sum_ex2": 0.47281332925086755
+  },
+  {
+    "course": "Doncaster",
+    "user_off": "13:35",
+    "card_off": "14:35",
+    "desc": "1m Hcap",
+    "mkt_id": "1.259648109",
+    "thin": true,
+    "nr": [],
+    "card_found": true,
+    "field_active": 9,
+    "match": [
+      {
+        "name": "Al Muqdad",
+        "matched": true,
+        "card_name": "Al Muqdad"
+      },
+      {
+        "name": "Amidst The Chaos",
+        "matched": true,
+        "card_name": "Amidst The Chaos"
+      },
+      {
+        "name": "Tilani",
+        "matched": true,
+        "card_name": "Tilani"
+      },
+      {
+        "name": "Yafaarr",
+        "matched": true,
+        "card_name": "Yafaarr"
+      }
+    ],
+    "cands": [
+      {
+        "horse": "Al Muqdad",
+        "ex1": 5.6,
+        "ex2": 5.6,
+        "sb": 4.5,
+        "band": "5.0-6.0",
+        "d_med": 0.042389210019267765,
+        "d_p75": 0.29982046678635554,
+        "bsp_med": 5.8373795761078995,
+        "bsp_p75": 7.27899461400359,
+        "breakeven_lay": 5.6,
+        "net_med": -0.813308687615526,
+        "net_p75": -4.613259668508287,
+        "p_sb": 0.27916444084219055,
+        "p_ex2": 0.2813418992013435,
+        "div_pp": -0.21774583591529506,
+        "arb": false
+      },
+      {
+        "horse": "Amidst The Chaos",
+        "ex1": 5.9,
+        "ex2": 6.6,
+        "sb": 5.0,
+        "band": "5.0-6.0",
+        "d_med": 0.042389210019267765,
+        "d_p75": 0.29982046678635554,
+        "bsp_med": 6.15009633911368,
+        "bsp_p75": 7.6689407540394985,
+        "breakeven_lay": 5.9,
+        "net_med": -0.8133086876155238,
+        "net_p75": -4.61325966850829,
+        "p_sb": 0.2512479967579715,
+        "p_ex2": 0.23871433871629144,
+        "div_pp": 1.2533658041680051,
+        "arb": false
+      },
+      {
+        "horse": "Tilani",
+        "ex1": 5.9,
+        "ex2": 5.9,
+        "sb": 4.33,
+        "band": "5.0-6.0",
+        "d_med": 0.042389210019267765,
+        "d_p75": 0.29982046678635554,
+        "bsp_med": 6.15009633911368,
+        "bsp_p75": 7.6689407540394985,
+        "breakeven_lay": 5.9,
+        "net_med": -0.8133086876155238,
+        "net_p75": -4.61325966850829,
+        "p_sb": 0.29012470757271536,
+        "p_ex2": 0.26703637890297005,
+        "div_pp": 2.3088328669745306,
+        "arb": false
+      },
+      {
+        "horse": "Yafaarr",
+        "ex1": 7.2,
+        "ex2": 7.4,
+        "sb": 7.0,
+        "band": "6.0-8.0",
+        "d_med": 0.055625790139064435,
+        "d_p75": 0.3370473537604457,
+        "bsp_med": 7.600505689001264,
+        "bsp_p75": 9.62674094707521,
+        "breakeven_lay": 7.2,
+        "net_med": -1.0538922155688613,
+        "net_p75": -5.041666666666666,
+        "p_sb": 0.1794628548271225,
+        "p_ex2": 0.21290738317939503,
+        "div_pp": -3.3444528352272545,
+        "arb": false
+      }
+    ],
+    "nr_confirmed": {},
+    "book_sum_sb": 0.7960262472964552,
+    "book_sum_ex2": 0.634713240645444
+  },
+  {
+    "course": "Newton Abbot",
+    "user_off": "13:10",
+    "card_off": "14:10",
+    "desc": "2m1f Mdn Hrd",
+    "mkt_id": "1.259648047",
+    "thin": true,
+    "nr": [],
+    "card_found": true,
+    "field_active": 8,
+    "match": [
+      {
+        "name": "Likewhatyousee",
+        "matched": true,
+        "card_name": "Likewhatyousee"
+      },
+      {
+        "name": "Elated",
+        "matched": true,
+        "card_name": "Elated"
+      },
+      {
+        "name": "For Her Glory",
+        "matched": true,
+        "card_name": "For Her Glory"
+      },
+      {
+        "name": "Getmyfriend",
+        "matched": true,
+        "card_name": "Getmyfriend"
+      }
+    ],
+    "cands": [
+      {
+        "horse": "Likewhatyousee",
+        "ex1": 2.86,
+        "ex2": 2.9,
+        "sb": 2.8,
+        "band": "2.5-3.0",
+        "d_med": 0.0,
+        "d_p75": 0.17241379310344818,
+        "bsp_med": 2.86,
+        "bsp_p75": 3.3531034482758617,
+        "breakeven_lay": 2.86,
+        "net_med": 0.0,
+        "net_p75": -2.9411764705882337,
+        "p_sb": 0.29440761516233216,
+        "p_ex2": 0.3458769265384183,
+        "div_pp": -5.146931137608613,
+        "arb": false
+      },
+      {
+        "horse": "Elated",
+        "ex1": 4.4,
+        "ex2": 4.4,
+        "sb": 4.33,
+        "band": "4.0-5.0",
+        "d_med": 0.03524229074889873,
+        "d_p75": 0.2666666666666666,
+        "bsp_med": 4.5550660792951545,
+        "bsp_p75": 5.573333333333333,
+        "breakeven_lay": 4.4,
+        "net_med": -0.680851063829786,
+        "net_p75": -4.210526315789471,
+        "p_sb": 0.19037905830358662,
+        "p_ex2": 0.22796433794577567,
+        "div_pp": -3.758527964218905,
+        "arb": false
+      },
+      {
+        "horse": "For Her Glory",
+        "ex1": 4.7,
+        "ex2": 4.3,
+        "sb": 3.2,
+        "band": "4.0-5.0",
+        "d_med": 0.03524229074889873,
+        "d_p75": 0.2666666666666666,
+        "bsp_med": 4.865638766519824,
+        "bsp_p75": 5.953333333333333,
+        "breakeven_lay": 4.7,
+        "net_med": -0.6808510638297882,
+        "net_p75": -4.2105263157894735,
+        "p_sb": 0.2576066632670406,
+        "p_ex2": 0.23326583417707278,
+        "div_pp": 2.4340829089967846,
+        "arb": false
+      },
+      {
+        "horse": "Getmyfriend",
+        "ex1": 4.9,
+        "ex2": 5.2,
+        "sb": 3.2,
+        "band": "4.0-5.0",
+        "d_med": 0.03524229074889873,
+        "d_p75": 0.2666666666666666,
+        "bsp_med": 5.072687224669604,
+        "bsp_p75": 6.206666666666667,
+        "breakeven_lay": 4.9,
+        "net_med": -0.6808510638297882,
+        "net_p75": -4.2105263157894735,
+        "p_sb": 0.2576066632670406,
+        "p_ex2": 0.19289290133873324,
+        "div_pp": 6.471376192830738,
+        "arb": false
+      }
+    ],
+    "nr_confirmed": {},
+    "book_sum_sb": 1.2130897393599471,
+    "book_sum_ex2": 0.9969661453221998
+  },
+  {
+    "course": "Newton Abbot",
+    "user_off": "13:45",
+    "card_off": "14:45",
+    "desc": "2m3f Nov Hcap Hrd",
+    "mkt_id": "1.259648053",
+    "thin": true,
+    "nr": [
+      "Katzoff"
+    ],
+    "card_found": true,
+    "field_active": 6,
+    "match": [
+      {
+        "name": "Kittys Glance",
+        "matched": true,
+        "card_name": "Kittys Glance"
+      },
+      {
+        "name": "Ask Peter",
+        "matched": true,
+        "card_name": "Ask Peter"
+      },
+      {
+        "name": "Backer Bilk",
+        "matched": true,
+        "card_name": "Backer Bilk"
+      },
+      {
+        "name": "Saucats",
+        "matched": true,
+        "card_name": "Saucats"
+      }
+    ],
+    "cands": [
+      {
+        "horse": "Kittys Glance",
+        "ex1": 2.76,
+        "ex2": 2.74,
+        "sb": 2.5,
+        "band": "2.5-3.0",
+        "d_med": 0.0,
+        "d_p75": 0.17241379310344818,
+        "bsp_med": 2.76,
+        "bsp_p75": 3.235862068965517,
+        "breakeven_lay": 2.76,
+        "net_med": 0.0,
+        "net_p75": -2.9411764705882337,
+        "p_sb": 0.37286592305941274,
+        "p_ex2": 0.42074362618166294,
+        "div_pp": -4.78777031222502,
+        "arb": false
+      },
+      {
+        "horse": "Ask Peter",
+        "ex1": 4.8,
+        "ex2": 5.0,
+        "sb": 3.25,
+        "band": "4.0-5.0",
+        "d_med": 0.03524229074889873,
+        "d_p75": 0.2666666666666666,
+        "bsp_med": 4.969162995594714,
+        "bsp_p75": 6.079999999999999,
+        "breakeven_lay": 4.8,
+        "net_med": -0.6808510638297904,
+        "net_p75": -4.210526315789471,
+        "p_sb": 0.2868199408149329,
+        "p_ex2": 0.2305675071475513,
+        "div_pp": 5.625243366738158,
+        "arb": false
+      },
+      {
+        "horse": "Backer Bilk",
+        "ex1": 5.0,
+        "ex2": 5.1,
+        "sb": 4.5,
+        "band": "5.0-6.0",
+        "d_med": 0.042389210019267765,
+        "d_p75": 0.29982046678635554,
+        "bsp_med": 5.211946050096339,
+        "bsp_p75": 6.499102333931778,
+        "breakeven_lay": 5.0,
+        "net_med": -0.813308687615526,
+        "net_p75": -4.61325966850829,
+        "p_sb": 0.20714773503300704,
+        "p_ex2": 0.22604657563485425,
+        "div_pp": -1.889884060184721,
+        "arb": false
+      },
+      {
+        "horse": "Saucats",
+        "ex1": 8.4,
+        "ex2": 9.4,
+        "sb": 7.0,
+        "band": "8-10",
+        "d_med": 0.07283236994219644,
+        "d_p75": 0.382685021643437,
+        "bsp_med": 9.01179190751445,
+        "bsp_p75": 11.614554181804872,
+        "breakeven_lay": 8.4,
+        "net_med": -1.357758620689653,
+        "net_p75": -5.535389704136431,
+        "p_sb": 0.13316640109264738,
+        "p_ex2": 0.12264229103593155,
+        "div_pp": 1.052411005671583,
+        "arb": false
+      }
+    ],
+    "nr_confirmed": {
+      "Katzoff": true
+    },
+    "book_sum_sb": 1.0727716727716727,
+    "book_sum_ex2": 0.8674249137455883
+  }
+]
