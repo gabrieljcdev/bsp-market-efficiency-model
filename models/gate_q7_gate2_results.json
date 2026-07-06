@@ -1,0 +1,47 @@
+{
+  "verdict": {
+    "overall": {
+      "n_nr": 759,
+      "n_ctrl": 2991,
+      "nr_roi_per_pound": 0.01105,
+      "ctrl_roi_per_pound": 0.00424,
+      "matched_edge_per_pound": 0.00887
+    },
+    "discovery": {
+      "n_nr": 653,
+      "n_ctrl": 2538,
+      "nr_roi_per_pound": -0.02744,
+      "ctrl_roi_per_pound": 0.00724,
+      "matched_edge_per_pound": -0.03149
+    },
+    "holdout": {
+      "n_nr": 106,
+      "n_ctrl": 453,
+      "nr_roi_per_pound": 0.24818,
+      "ctrl_roi_per_pound": -0.01255,
+      "matched_edge_per_pound": 0.25897
+    },
+    "parity_even": {
+      "n_nr": 369,
+      "n_ctrl": 1370,
+      "nr_roi_per_pound": 0.02405,
+      "ctrl_roi_per_pound": -0.00435,
+      "matched_edge_per_pound": 0.02866
+    },
+    "parity_odd": {
+      "n_nr": 390,
+      "n_ctrl": 1621,
+      "nr_roi_per_pound": -0.00126,
+      "ctrl_roi_per_pound": 0.0115,
+      "matched_edge_per_pound": -0.00938
+    },
+    "verdict": "PRICED",
+    "verdict_reason": "holdout matched edge 0.25897/\u00a3 does not clear the ambient null on all splits (edges {'overall': 0.0089, 'discovery': -0.0315, 'holdout': 0.259, 'parity_even': 0.0287, 'parity_odd': -0.0094}) \u2014 the stale-quote return is the ambient spread/churn base rate, not a removal edge."
+  },
+  "coverage": {
+    "nr_trades": 759,
+    "ctrl_trades": 2991
+  },
+  "wall_clock_s": 1094.6,
+  "n_tars": 12
+}

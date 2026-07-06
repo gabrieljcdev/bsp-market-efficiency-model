@@ -1,0 +1,55 @@
+{
+  "summary": {
+    "n_events": 4079,
+    "n_racedays_with_events": 309,
+    "events_per_raceday": 12.787,
+    "af_pct": {
+      "min": 2.5,
+      "median": 7.69,
+      "max": 100.2
+    },
+    "suspend_fraction": 0.1522,
+    "suspension_duration_s": {
+      "n": 621,
+      "median": 1,
+      "p90": 85,
+      "max": 300,
+      "n_censored": 50
+    },
+    "book_wipe": {
+      "wiped_frac_le10pct": 0.0422,
+      "wipe_ratio_median": 0.2728,
+      "wipe_ratio_p10": 0.1469
+    },
+    "repopulation_to_80pct_s": {
+      "n_repopulated": 1941,
+      "frac_repopulated": 0.4759,
+      "median": 14,
+      "p90": 42
+    },
+    "fillability": {
+      "fillable_events": 523,
+      "fill_fraction": 0.1282,
+      "bar": 0.1,
+      "verdict": "PASS",
+      "fillable_matched_benchmark": 402,
+      "fill_fraction_matched": 0.0986,
+      "best_opp_gbp_median": 2,
+      "best_opp_gbp_p90": 71.11
+    },
+    "verdict": "PASS"
+  },
+  "coverage": {
+    "reason_not_win": 97212,
+    "reason_flat": 5760,
+    "flat_markets": 5760,
+    "markets_with_events": 2706,
+    "events": 4079,
+    "reason_not_gb": 34831,
+    "reason_jumps": 3411,
+    "reason_venue_not_in_gb_ref": 523
+  },
+  "wall_clock_s": 1139.7,
+  "n_tars": 12,
+  "n_racedays_total": 319
+}
