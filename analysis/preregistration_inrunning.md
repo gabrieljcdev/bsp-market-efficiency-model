@@ -345,6 +345,93 @@ price-band × course stratified (§9). Two gates: **Gate 1 = liquidity/fill feas
   Compute protocol: checkpoint, estimate wall-time early, **stop and report if > 8h**.
   Output: `analysis/gate_preoff_report.md` + PROJECT_NOTES append.
 
+### Amendment 2 — 2026-07-06 — **Q7 (non-runner repricing latency) defined + gated**
+
+**Why now / discipline.** With the pre-off momentum/CLV/quote family closed (Amendment 1,
+all FAIL), this pins a **new, orthogonal** pre-off question — an *event-driven* latency
+mechanic rather than a standing-signal edge — **before first Q7 data contact**. Frozen
+below verbatim from the user's four-part brief (2026-07-06); assistant-specified defaults
+are flagged inline and overridable only by a further dated amendment. Universe unchanged
+(GB flat, §3); fill model unchanged (§6, 1 s latency, cross-the-spread, cap at available
+size, `betDelay` verified per market); commission **2%**.
+
+**Scope of the announcement family (what is / isn't observable).** Of the pre-off
+announcement family — **non-runner (NR) withdrawal, going change, jockey change** — **only
+NR withdrawals are observable in the Betfair stream**: a runner's
+`marketDefinition.runners[].status` transitions to `REMOVED` with a `removalDate` and an
+`adjustmentFactor` (the reduction factor, RF). **Going and jockey changes emit no stream
+event** (absent from `marketDefinition`) → **untestable on this data, excluded from Q7** —
+recorded here so the omission is deliberate, not overlooked.
+
+**Q7 — mechanism & the known adversary.** When a runner is removed, the remaining runners'
+fair prices shift **instantly and by known RF arithmetic** (below). If the visible ladder
+repopulates *slower* than 1-second-latency retail can act, the stale quotes are pickable
+free money (e.g. back a survivor at its stale, too-long pre-removal odds before the ladder
+shortens to fair). **Known adversary, pre-registered as the likely killer:** Betfair
+**SUSPENDS** the market on a removal and **cancels all unmatched bets**, so the stale quote
+may never be hittable — the mechanic can delete the opportunity *by design*. **Measuring
+whether it does is itself the result:** Gate 1's diagnostics are the deliverable regardless
+of PASS/FAIL.
+
+**Frozen definition (locked before first NR data contact).**
+- **Event:** a runner `status → REMOVED` in a **GB-flat WIN** market (§3), **pre-off**
+  (before the in-play turn), with **`adjustmentFactor` ≥ 2.5%**. Sub-2.5% RFs are **not
+  applied by Betfair** (no repricing implied) → excluded. `t` = the removal instant = the
+  `publishTime` of the message carrying the `REMOVED` transition; `removalDate` recorded as
+  a cross-check.
+- **Pre-state:** full book snapshot at **t − 1 s**. **Post-states:** 1-second snapshots
+  **t + 1 s → t + 300 s**.
+- **Fair-adjustment benchmark (the "known RF arithmetic"; exact formula pinned).** For each
+  remaining runner *i* with pre-removal price `P_pre,i` (**best-back at t − 1 s**; best-lay
+  and mid recorded as sensitivities), the fair post-removal price is the
+  **probability-renormalisation** price:
+  > **`P_fair,i = P_pre,i × (1 − A)`**,  where `A = Σ(adjustmentFactor / 100)` over all
+  > runners removed at the event.
+  *Derivation (WIN-market RF applies to the price):* the removed runner's implied
+  win-probability ≈ its `adjustmentFactor`; removing it renormalises every survivor's
+  probability `p_i → p_i /(1 − A)`, and since `price = 1/p`, each survivor's price scales
+  **down** by the common factor `(1 − A)` — the shift the ladder *should* jump to at t⁺.
+  *Cross-check benchmark (reported, not primary):* Betfair's mechanical matched-bet
+  reduction `P' = 1 + (P_pre − 1)(1 − A)` (applied to *already-matched* bets); agrees to
+  first order, diverges most at short prices → **Q7 reports headline sensitivity to which
+  benchmark is used.** *Assumption flagged:* proportional redistribution (removed
+  probability spreads pro-rata); non-proportional redistribution is possible but is not a
+  pre-registerable known-arithmetic benchmark.
+- **Opportunity (the tradable):** at **t + k (k = 1…30 s)**, available size at a price
+  **stale vs the benchmark by ≥ 2 Betfair ticks**, on **either side** (a survivor still
+  offered to back ≥ 2 ticks longer than `P_fair`, or to lay ≥ 2 ticks shorter). **Entry** =
+  take it at **1 s latency** (§6), **£50 cap per runner**. **Exit** = at the **touch at
+  t + 300 s**. **P&L net 2% commission.**
+- **Null:** identical entry/exit at **matched random non-NR moments**, **band-matched by
+  price and time-to-off** — strips the ambient pre-off drift/spread a survivor's band gets
+  anyway, so only the *removal-driven* stale-quote return survives.
+
+**Mandatory diagnostics (Gate 1, reported regardless of verdict):** (i) fraction of NR
+events where the market **suspends**; (ii) **suspension-duration distribution**; (iii)
+fraction where the **unmatched book is wiped** (post-suspension depth at t + 1 s vs
+t − 1 s); (iv) **time-to-book-repopulation** (until depth returns to **80%** of the
+pre-removal level).
+
+**Gates.**
+- **Gate 1 — fillability / does the opportunity survive the mechanic (Part B).** Count
+  qualifying NR events across the 12 tars (**report the count and the rate per raceday**;
+  expect hundreds). **Fillability bar:** a stale-quote opportunity with **≥ £50 available**
+  exists in **≥ 10%** of NR events → PASS; **otherwise FAIL — mechanically deleted**
+  (suspension + unmatched-cancel), the pre-registered expected outcome.
+- **Gate 2 — edge, survivors only (Part C).** Only if Gate 1 passes. **P&L vs the null**,
+  on the committed splits (**discovery 2015-05–12 / holdout 2016-01–04, §7, PLUS the
+  odd/even-week interleave**; verdict must hold on both — disagreement = FAIL). **Verdict
+  decided before any money-narrative**, on holdout; discovery + parity for corroboration.
+
+**Discipline inherited:** intra-race leakage rule (§1) — the benchmark uses only the t − 1 s
+state + published AF, both known at the removal instant; **no look-ahead** to the converged
+price. **Thin-N handling (§4):** widen nothing / lower nothing; if edge-leg events are few,
+the *mechanic* (suspension/wipe) is near-deterministic Betfair policy and is decisively
+characterised even on hundreds of events, while the *edge* leg is reported as
+underpowered — never retuned to pass. Compute protocol: checkpoint, wall-time estimate
+early, **stop and report if > 8 h**. Output: `analysis/gate_q7_nonrunner_report.md` +
+PROJECT_NOTES append.
+
 ---
 
 ## 13. Non-goals / what is NOT happening under this commit
