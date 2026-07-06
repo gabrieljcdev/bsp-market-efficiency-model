@@ -280,7 +280,70 @@ parse — nothing downstream depends on the proposed wording.)*
 
 ## 12. Amendment log  *(append-only; each entry: date — what changed — why)*
 
-_(empty — no amendments; the document is pre-data-contact.)_
+### Amendment 1 — 2026-07-06 — Q1 closed; in-running retired; **pre-off gate program (Q2/Q3/Q6) defined**
+
+**Why now / discipline:** Gate 1 (Q1) reconstructed full market streams (which include
+pre-off ticks) but computed **only in-running liquidity** — no pre-off signal, CLV, fill,
+or direction statistic was ever examined. So the pre-off questions below are still being
+pinned **before first pre-off data contact**, and this amendment is written before any
+pre-off gate is run. Gaps the source brief left open are filled with **ASSISTANT-SPECIFIED**
+defaults (flagged inline), authorised by the user's "execute end-to-end" delegation and
+overridable only by a further dated amendment.
+
+**(1) Q1 (liquidity) — CLOSED / FAIL.** Gate 1 run (commit `82b9786`): n=1,618 qualifying
+opportunities (< the N=2,000 floor — reported, not retuned); £100 matchable in 27.3% (back)
+/ 18.7% (lay) at t+~1s, **median matchable ≈ £0**. Liquidity not demonstrated → the
+in-running direction fails at its primary gate.
+
+**(2) In-running program — RETIRED as moot.** Old **Q2 (in-running edge, §5)** and **Q4
+(in-running back-to-lay scalp, §10)** were both gated behind Q1 liquidity (§11), which
+failed → neither is run. The queued **"endogenous front-runner detector"** alternative
+dies with Q1. No further in-running work.
+
+**(3) PRE-OFF GATE PROGRAM — DEFINED.** Numbering per user: Q2 is **repurposed** to the
+pre-off momentum question; Q3 stays pre-off CLV (frozen); Q6 is new. Universe unchanged
+(GB flat, §3); fill model unchanged (§6, £100 within 1 tick, 2% commission); nulls are
+price-band × course stratified (§9). Two gates: **Gate 1 = liquidity/fill feasibility**,
+**Gate 2 = edge** (survivors only).
+
+- **Q2 — pre-off ladder momentum → final-10-min direction.**
+  - *Gate 1:* reconstruct book depth **T-10min → T-30s at 1s**; PASS iff £100 matchable
+    within 1 tick in > 50% of qualifying race-moments (as §4/§6).
+  - *Gate 2:* features at **T-10min** — WAP momentum, back/lay size-imbalance ratio,
+    volume acceleration — predict the **sign** of the price move over T-10min→off. Split:
+    **discovery = 2015-05-01…2015-12-31, holdout = 2016-01-01…2016-04-30, PLUS an
+    odd/even-week interleave robustness split**; the verdict must hold on BOTH —
+    **disagreement = FAIL**. Bar: net-2%-commission directional return **beats the
+    band-stratified baseline drift by ≥ 2 ticks AND is > 0**.
+
+- **Q3 — timestamped-strike CLV (FROZEN as committed, §10 Q3).**
+  - *Gate 1:* entry at **T-10min quoting the 3rd-best-back rung**; exit when **2 ticks
+    shorter OR at T-30s**; PASS iff £100 matchable within 1 tick in > 50% (as §4).
+  - *Gate 2:* frozen rule; CLV vs BSP; **band-stratified null**; Brier corroboration (§1).
+
+- **Q6 — pre-off passive quote (market-making).**
+  - *Quote rule (ASSISTANT-SPECIFIED):* two-sided passive quote **joining the touch queue**
+    (a back at the best-back price and a lay at the best-lay price), **size £100/side**,
+    **posted at T-30min** on every qualifying GB-flat WIN runner, resting until fill or the
+    T-10min hedge.
+  - *Fill model (as briefed):* filled only when **cumulative traded volume through the
+    quoted price after posting exceeds (prior resting queue ahead of us + our £100)** — no
+    partial credit beyond actual traded volume.
+  - *Hedge:* on fill, exit at **T-10min at the then-touch** (cross the spread, pay it).
+    Unfilled quotes = no trade, zero cost.
+  - *Gate 1 bar:* **fill RATE is the gate — < 10% of posted quotes ever fill ⇒ Q6 FAILS**
+    (too few trades to matter).
+  - *Gate 2:* P&L **net 2% commission; verdict vs zero AND vs the band-stratified null**.
+    Diagnostic (report, not verdict): post-fill **adverse-selection curve** — price drift
+    at **+5min / +30min / T-10min** after each fill, filled vs unfilled runners.
+
+- **Common:** N target = **all** qualifying pre-off opportunities in the tars (every GB
+  flat race has a T-10min moment; **report the count**, expect ≫2,000). **Secondary slices
+  (ASSISTANT-SPECIFIED thresholds):** S1 = sprints (≤ 6f), S2 = small fields (≤ 8 runners),
+  S3 = handicaps — reported for each **surviving** question, **Benjamini-Hochberg-corrected
+  as one family**. Verdicts decided **before** any money logic; kills reported plainly.
+  Compute protocol: checkpoint, estimate wall-time early, **stop and report if > 8h**.
+  Output: `analysis/gate_preoff_report.md` + PROJECT_NOTES append.
 
 ---
 
